@@ -113,174 +113,178 @@ async function exportPDF(data: RowData[]) {
   const { default: jsPDF } = await import("jspdf");
   await ensureFontLoaded();
 
-  const SCALE = 2;
-  const COL_WIDTHS = [100, 60, 110, 110, 100, 130, 80, 80, 90, 70];
-  const FONT_SIZE = 10;
-  const ROW_PAD = 4;
-  const HEADER_H = 28;
-  const ROW_H = FONT_SIZE + ROW_PAD * 2;
-  const TABLE_W = COL_WIDTHS.reduce((a, b) => a + b, 0);
-  const MARGIN = 20 * SCALE;
-  const CANVAS_W = TABLE_W + MARGIN * 2;
+  // --- A4 landscape dimensions (mm) ---
+  const PDF_W = 297;
+  const PDF_H = 210;
+  const MARGIN_MM = 10;
+  const USABLE_W = PDF_W - MARGIN_MM * 2; // 277mm
+  const USABLE_H = PDF_H - MARGIN_MM * 2; // 190mm
 
-  // Load logo
-  const logoImg = await loadImage(LOGO_URL);
+  // --- Column width ratios (proportional, sum = 1) ---
+  const COL_RATIOS = [0.12, 0.08, 0.12, 0.12, 0.10, 0.14, 0.08, 0.08, 0.09, 0.07];
+  const colWidthsMM = COL_RATIOS.map((r) => r * USABLE_W);
 
-  // --- Measure all rows to compute total height ---
-  const offscreen = document.createElement("canvas");
-  offscreen.width = 1;
-  offscreen.height = 1;
-  const measureCtx = offscreen.getContext("2d")!;
-  measureCtx.font = `${FONT_SIZE}px 'Prompt', sans-serif`;
+  // --- Canvas drawing constants ---
+  const SCALE = 3; // high-res for crisp text
+  const FONT_SIZE = 9;
+  const LINE_H = FONT_SIZE * 1.35;
+  const CELL_PAD = 2.5;
+  const HEADER_ROW_H = 10; // mm for header row
+  const TITLE_AREA_H = 14; // mm for title + subtitle
 
-  const rowHeights: number[] = [];
+  // --- Measure rows to find how many fit per page ---
+  const offCanvas = document.createElement("canvas");
+  offCanvas.width = 1;
+  offCanvas.height = 1;
+  const mCtx = offCanvas.getContext("2d")!;
+  mCtx.font = `${FONT_SIZE * SCALE}px 'Prompt', sans-serif`;
+
+  const rowHeightsMM: number[] = [];
   for (const row of data) {
-    let maxH = ROW_H;
+    let maxLines = 1;
     for (let ci = 0; ci < COLUMNS.length; ci++) {
       const col = COLUMNS[ci];
       const val =
         col.key === "ราคาเสนอ"
           ? formatCurrency(row.ราคาเสนอ)
           : String((row as unknown as Record<string, unknown>)[col.key] || "");
-      const lines = wrapText(measureCtx, val, COL_WIDTHS[ci] * SCALE - 12);
-      const h = lines.length * (FONT_SIZE * 1.3) + ROW_PAD * 2;
-      if (h > maxH) maxH = h;
+      const cellWPx = colWidthsMM[ci] * SCALE - CELL_PAD * 2 * SCALE;
+      const lines = wrapText(mCtx, val, cellWPx);
+      if (lines.length > maxLines) maxLines = lines.length;
     }
-    rowHeights.push(maxH);
+    rowHeightsMM.push(maxLines * LINE_H + CELL_PAD * 2);
   }
 
-  const totalTableH = rowHeights.reduce((a, b) => a + b, 0);
-  const CANVAS_H = totalTableH + HEADER_H * SCALE + MARGIN * 2 + 40 * SCALE;
+  // Available height for data rows per page
+  const dataAreaH = USABLE_H - TITLE_AREA_H - HEADER_ROW_H;
 
-  // --- Draw everything on a real canvas ---
-  const canvas = document.createElement("canvas");
-  canvas.width = CANVAS_W;
-  canvas.height = CANVAS_H;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-  // Header
-  const headerX = MARGIN;
-  const headerY = MARGIN;
-  ctx.fillStyle = "#111827";
-  ctx.font = `bold ${14 * SCALE}px 'Prompt', sans-serif`;
-  ctx.fillText("CL69 \u00B7 \u0E17\u0E23\u0E40\u0E08\u0E23\u0E34\u0E13\u0E04\u0E33\u0E01\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E23\u0E2A\u0E48\u0E07\u0E08\u0E31\u0E14 \u0E23\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E32\u0E07\u0E23\u0E2D\u0E42\u0E21", headerX, headerY + 18 * SCALE);
-  ctx.fillStyle = "#6b7280";
-  ctx.font = `${10 * SCALE}px 'Prompt', sans-serif`;
-  ctx.fillText(`\u0E08\u0E33\u0E01\u0E31\u0E1A ${data.length} \u0E23\u0E21\u0E32\u0E14\u0E22\u0E48\u0E32\u0E07`, headerX, headerY + 34 * SCALE);
-
-  // Draw logo if loaded
-  if (logoImg) {
-    ctx.drawImage(
-      logoImg,
-      CANVAS_W - MARGIN - 28 * SCALE,
-      headerY,
-      28 * SCALE,
-      28 * SCALE,
-    );
+  // Compute page breaks
+  const pages: { start: number; end: number }[] = [];
+  let accumulated = 0;
+  let pageStart = 0;
+  for (let i = 0; i < data.length; i++) {
+    if (accumulated + rowHeightsMM[i] > dataAreaH && i > pageStart) {
+      pages.push({ start: pageStart, end: i });
+      pageStart = i;
+      accumulated = 0;
+    }
+    accumulated += rowHeightsMM[i];
   }
+  if (pageStart < data.length) {
+    pages.push({ start: pageStart, end: data.length });
+  }
+  if (pages.length === 0) pages.push({ start: 0, end: 0 });
 
-  // Table
-  const tableTop = MARGIN + HEADER_H * SCALE + 10 * SCALE;
-  let y = tableTop;
+  // --- Draw each page on a canvas then add to PDF ---
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const logoImg = await loadImage(LOGO_URL);
 
-  // Draw all rows including header
-  const drawRow = (
-    cells: string[],
-    bg: string,
-    fg: string,
-    fontWeight: string,
-    rowIdx: number,
-  ) => {
-    const rh = rowIdx === -1 ? HEADER_H * SCALE : rowHeights[rowIdx];
-    ctx.fillStyle = bg;
-    ctx.fillRect(MARGIN, y, TABLE_W * SCALE, rh);
-    ctx.fillStyle = fg;
-    ctx.font = `${fontWeight} ${FONT_SIZE}px 'Prompt', sans-serif`;
-    let x = MARGIN;
-    for (let ci = 0; ci < cells.length; ci++) {
-      const cellW = COL_WIDTHS[ci] * SCALE;
-      // Draw cell border
-      ctx.strokeStyle = "#e5e7eb";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, cellW, rh);
-      // Draw text
-      const lines = wrapText(ctx, cells[ci], cellW - 12);
-      const textY = y + ROW_PAD + FONT_SIZE;
-      for (let li = 0; li < lines.length; li++) {
-        ctx.fillText(lines[li], x + 6, textY + li * FONT_SIZE * 1.3);
+  const drawPage = (pageIdx: number, pageData: RowData[], startIdx: number) => {
+    // Calculate this page's actual content height
+    let contentH = 0;
+    for (const row of pageData) contentH += rowHeightsMM[rowData.indexOf(row)];
+    const pageContentH = TITLE_AREA_H + HEADER_ROW_H + contentH;
+
+    const cW = Math.round(USABLE_W * SCALE);
+    const cH = Math.round(pageContentH * SCALE);
+    const canvas = document.createElement("canvas");
+    canvas.width = cW;
+    canvas.height = cH;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cW, cH);
+
+    const s = SCALE;
+
+    // Title area
+    let ty = TITLE_AREA_H * s * 0.55;
+    ctx.fillStyle = "#111827";
+    ctx.font = `bold ${13 * s}px 'Prompt', sans-serif`;
+    ctx.fillText("CL69 \u00B7 \u0E17\u0E23\u0E40\u0E08\u0E23\u0E34\u0E13\u0E04\u0E33\u0E01\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E23\u0E2A\u0E48\u0E07\u0E08\u0E31\u0E14 \u0E23\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E32\u0E07\u0E23\u0E2D\u0E42\u0E21", 0, ty);
+    ctx.fillStyle = "#6b7280";
+    ctx.font = `${9 * s}px 'Prompt', sans-serif`;
+    const subtitle = `\u0E08\u0E33\u0E01\u0E31\u0E1A ${data.length} \u0E23\u0E21\u0E32\u0E14\u0E22\u0E48\u0E32\u0E07` + (pages.length > 1 ? ` \u2022 \u0E1E\u0E34\u0E40\u0E28\u0E29 ${pageIdx + 1}/${pages.length}` : "");
+    ctx.fillText(subtitle, 0, ty + 13 * s);
+
+    if (logoImg) {
+      const logoSize = 10 * s;
+      ctx.drawImage(logoImg, cW - logoSize, 0, logoSize, logoSize);
+    }
+
+    // Table top
+    let tableY = TITLE_AREA_H * s;
+
+    // --- Draw header row ---
+    const drawTableRow = (
+      cells: string[],
+      bg: string,
+      fg: string,
+      fontWeight: string,
+      rh: number,
+    ) => {
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, tableY, cW, rh * s);
+      ctx.fillStyle = fg;
+      ctx.font = `${fontWeight} ${FONT_SIZE * s}px 'Prompt', sans-serif`;
+      let cx = 0;
+      for (let ci = 0; ci < cells.length; ci++) {
+        const cw = colWidthsMM[ci] * s;
+        ctx.strokeStyle = "#d1d5db";
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx, tableY, cw, rh * s);
+        // Text
+        const maxTextW = cw - CELL_PAD * 2 * s;
+        const lines = wrapText(ctx, cells[ci], maxTextW);
+        const textStartY = tableY + CELL_PAD * s + FONT_SIZE * s;
+        for (let li = 0; li < lines.length; li++) {
+          ctx.fillText(lines[li], cx + CELL_PAD * s, textStartY + li * LINE_H * s);
+        }
+        cx += cw;
       }
-      x += cellW;
+      tableY += rh * s;
+    };
+
+    // Header
+    drawTableRow(
+      COLUMNS.map((c) => c.label),
+      "#f3f4f6",
+      "#374151",
+      "bold",
+      HEADER_ROW_H,
+    );
+
+    // Data rows
+    for (let ri = 0; ri < pageData.length; ri++) {
+      const row = pageData[ri];
+      const cells = COLUMNS.map((col) =>
+        col.key === "ราคาเสนอ"
+          ? formatCurrency(row.ราคาเสนอ)
+          : String((row as unknown as Record<string, unknown>)[col.key] || ""),
+      );
+      const rh = rowHeightsMM[rowData.indexOf(row)];
+      drawTableRow(
+        cells,
+        ri % 2 === 0 ? "#ffffff" : "#f9fafb",
+        "#374151",
+        "normal",
+        rh,
+      );
     }
-    y += rh;
+
+    return canvas;
   };
 
-  // Header row
-  drawRow(
-    COLUMNS.map((c) => c.label),
-    "#f3f4f6",
-    "#111827",
-    "bold",
-    -1,
-  );
+  // Keep a reference for index lookup
+  const rowData = data;
 
-  // Data rows
-  for (let ri = 0; ri < data.length; ri++) {
-    const row = data[ri];
-    const cells = COLUMNS.map((col) =>
-      col.key === "ราคาเสนอ"
-        ? formatCurrency(row.ราคาเสนอ)
-        : String((row as unknown as Record<string, unknown>)[col.key] || ""),
-    );
-    drawRow(
-      cells,
-      ri % 2 === 0 ? "#ffffff" : "#f9fafb",
-      "#374151",
-      "normal",
-      ri,
-    );
-  }
-
-  // --- Build PDF from canvas slices ---
-  const imgData = canvas.toDataURL("image/png");
-  const imgW = canvas.width;
-  const imgH = canvas.height;
-
-  // A4 landscape: 297 x 210 mm
-  const pdfW = 297;
-  const pdfH = 210;
-  const pdfMargin = 8;
-  const usableW = pdfW - pdfMargin * 2;
-  const usableH = pdfH - pdfMargin * 2;
-  const scale = usableW / imgW;
-
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-
-  const pageImgH = usableH / scale;
-  let srcY = 0;
-  let pageNum = 0;
-
-  while (srcY < imgH) {
-    if (pageNum > 0) doc.addPage();
-    const sliceH = Math.min(pageImgH, imgH - srcY);
-
-    const sliceCanvas = document.createElement("canvas");
-    sliceCanvas.width = imgW;
-    sliceCanvas.height = sliceH;
-    const sCtx = sliceCanvas.getContext("2d")!;
-    sCtx.drawImage(canvas, 0, srcY, imgW, sliceH, 0, 0, imgW, sliceH);
-
-    doc.addImage(
-      sliceCanvas.toDataURL("image/png"),
-      "PNG",
-      pdfMargin,
-      pdfMargin,
-      usableW,
-      sliceH * scale,
-    );
-    srcY += sliceH;
-    pageNum++;
+  // --- Build PDF ---
+  for (let pi = 0; pi < pages.length; pi++) {
+    if (pi > 0) doc.addPage();
+    const { start, end } = pages[pi];
+    const pageData = data.slice(start, end);
+    const canvas = drawPage(pi, pageData, start);
+    const imgData = canvas.toDataURL("image/png");
+    doc.addImage(imgData, "PNG", MARGIN_MM, MARGIN_MM, USABLE_W, (canvas.height / canvas.width) * USABLE_W);
   }
 
   doc.save("data_export.pdf");
