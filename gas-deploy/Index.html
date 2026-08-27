@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CL69 — ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Prompt', sans-serif; background: #f9fafb; color: #111827; font-size: 13px; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 16px; }
+    .header { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,.04); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-left img { width: 32px; height: 32px; border-radius: 4px; }
+    .header-title { font-size: 14px; font-weight: 700; }
+    .header-sub { font-size: 10px; color: #9ca3af; }
+    .header-right { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #9ca3af; }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; display: inline-block; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-family: inherit; font-size: 12px; cursor: pointer; transition: all .15s; }
+    .btn:hover { background: #f3f4f6; }
+    .btn-primary { background: #059669; color: #fff; border-color: #059669; }
+    .btn-primary:hover { background: #047857; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .summary-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+    .summary-label { font-size: 11px; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }
+    .summary-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .summary-sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .plan-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .plan-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4b5563; }
+    .plan-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .plan-value { font-size: 14px; font-weight: 600; }
+    /* Filter bar */
+    .filter-bar { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .filter-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .filter-header h3 { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }
+    .filter-badge { background: #d1fae5; color: #065f46; font-size: 10px; font-weight: 700; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+    .filter-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .filter-group label { display: block; font-size: 10px; font-weight: 500; color: #6b7280; text-transform: uppercase; margin-bottom: 4px; }
+    .filter-group select { width: 100%; height: 32px; border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb; padding: 0 8px; font-family: inherit; font-size: 11px; cursor: pointer; }
+    .filter-group select:focus { outline: none; border-color: #059669; }
+    .date-range { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f3f4f6; }
+    .date-range label { font-size: 10px; font-weight: 500; color: #6b7280; text-transform: uppercase; white-space: nowrap; }
+    .date-range input[type="date"] { height: 28px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0 8px; font-family: inherit; font-size: 11px; }
+    /* Chart tabs */
+    .chart-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+    .chart-tab { padding: 4px 10px; font-size: 11px; border-radius: 6px; border: none; background: #f3f4f6; color: #4b5563; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .chart-tab.active { background: #059669; color: #fff; }
+    .chart-tab:hover:not(.active) { background: #e5e7eb; }
+    .section-title { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .section-bar { width: 4px; height: 16px; border-radius: 2px; }
+    .section-title h2 { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }
+    /* Table */
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; cursor: pointer; white-space: nowrap; user-select: none; }
+    thead th:hover { background: #f3f4f6; }
+    thead th.sorted { color: #059669; }
+    thead th .sort-icon { margin-left: 4px; font-size: 9px; }
+    tbody td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tbody tr:hover { background: #f9fafb; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    tbody tr:nth-child(even):hover { background: #f3f4f6; }
+    td.price { text-align: right; font-variant-numeric: tabular-nums; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; }
+    .table-header .search { position: relative; }
+    .table-header .search input { width: 280px; height: 32px; border: 1px solid #e5e7eb; border-radius: 6px; padding: 0 12px 0 32px; font-family: inherit; font-size: 12px; background: #f9fafb; }
+    .table-header .search input:focus { outline: none; border-color: #059669; }
+    .table-header .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #9ca3af; }
+    .table-header .count { font-size: 11px; color: #9ca3af; }
+    .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #f3f4f6; }
+    .pagination .info { font-size: 11px; color: #9ca3af; }
+    .pagination .pages { display: flex; gap: 4px; }
+    .pagination .pages button { width: 28px; height: 28px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; font-family: inherit; font-size: 11px; cursor: pointer; }
+    .pagination .pages button.active { background: #059669; color: #fff; border-color: #059669; }
+    .pagination .pages button:hover:not(.active) { background: #f3f4f6; }
+    .pagination .pages button:disabled { opacity: .4; cursor: default; }
+    .empty { text-align: center; padding: 48px; color: #9ca3af; font-size: 13px; }
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; }
+    .loading-spinner { width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #059669; border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 13px; color: #6b7280; }
+    .top10-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+    .top10-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+    .top10-card h4 { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+    .top10-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .top10-bar .label { font-size: 11px; color: #4b5563; width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+    .top10-bar .bar-bg { flex: 1; height: 18px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
+    .top10-bar .bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+    .top10-bar .value { font-size: 10px; color: #6b7280; white-space: nowrap; flex-shrink: 0; }
+    footer { text-align: center; padding: 24px; font-size: 10px; color: #9ca3af; border-top: 1px solid #e5e7eb; margin-top: 24px; }
+    @media (max-width: 768px) {
+      .summary-grid, .plan-grid, .top10-grid { grid-template-columns: 1fr; }
+      .filter-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading" id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">กำลังโหลดข้อมูล...</div>
+  </div>
+</div>
+
+<script>
+let ALL_DATA = [];
+let FILTERS = {};
+let SORT_KEY = null;
+let SORT_DIR = null;
+let SEARCH = '';
+let PAGE = 0;
+const PAGE_SIZE = 20;
+let CHART_DIM = 'เดือน';
+
+const COLUMNS = [
+  { key: 'เลขทะเบียนคุม', label: 'เลขทะเบียนคุม' },
+  { key: 'เดือน', label: 'เดือน' },
+  { key: 'กลุ่มภารกิจ', label: 'กลุ่มภารกิจ' },
+  { key: 'กลุ่มงาน', label: 'กลุ่มงาน' },
+  { key: 'หน่วยงาน', label: 'หน่วยงาน' },
+  { key: 'รายการ', label: 'รายการ' },
+  { key: 'หมวด', label: 'หมวด' },
+  { key: 'ประเภท', label: 'ประเภท' },
+  { key: 'ราคาเสนอ', label: 'ราคาเสนอ' },
+  { key: 'ประเภทแผน', label: 'ประเภทแผน' },
+];
+
+const FILTER_KEYS = ['เลขทะเบียนคุม','เดือน','กลุ่มภารกิจ','กลุ่มงาน','หน่วยงาน','รายการ','หมวด','ประเภท','ประเภทแผน'];
+
+const DIMENSIONS = [
+  { key: 'เดือน', label: 'เดือน' },
+  { key: 'กลุ่มภารกิจ', label: 'กลุ่มภารกิจ' },
+  { key: 'กลุ่มงาน', label: 'กลุ่มงาน' },
+  { key: 'หน่วยงาน', label: 'หน่วยงาน' },
+  { key: 'รายการ', label: 'รายการ' },
+  { key: 'หมวด', label: 'หมวด' },
+  { key: 'ประเภท', label: 'ประเภท' },
+  { key: 'ประเภทแผน', label: 'ประเภทแผน' },
+];
+
+const COLORS = ['#059669','#d97706','#2563eb','#dc2626','#7c3aed','#0891b2','#ca8a04','#db2777','#4f46e5','#0d9488'];
+
+function formatCurrency(n) {
+  return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatCompact(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return n.toLocaleString('th-TH');
+}
+
+function getFiltered() {
+  let result = ALL_DATA;
+  for (const key of FILTER_KEYS) {
+    const vals = FILTERS[key];
+    if (vals && vals.length > 0) {
+      result = result.filter(r => vals.includes(r[key]));
+    }
+  }
+  if (SEARCH) {
+    const q = SEARCH.toLowerCase();
+    result = result.filter(r => COLUMNS.some(c => String(r[c.key] || '').toLowerCase().includes(q)));
+  }
+  if (SORT_KEY && SORT_DIR) {
+    result = [...result].sort((a, b) => {
+      let av = a[SORT_KEY], bv = b[SORT_KEY];
+      if (SORT_KEY === 'ราคาเสนอ') {
+        return SORT_DIR === 'asc' ? av - bv : bv - av;
+      }
+      av = String(av || ''); bv = String(bv || '');
+      const cmp = av.localeCompare(bv, 'th');
+      return SORT_DIR === 'asc' ? cmp : -cmp;
+    });
+  }
+  return result;
+}
+
+function getFilterOptions(key) {
+  const set = new Set();
+  ALL_DATA.forEach(r => { const v = String(r[key] || '').trim(); if (v) set.add(v); });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'th'));
+}
+
+function aggregate(dimension) {
+  const map = {};
+  ALL_DATA.forEach(r => {
+    if (dimension === 'ราคาเสนอ') return;
+    const key = String(r[dimension] || '').trim();
+    if (key) map[key] = (map[key] || 0) + r['ราคาเสนอ'];
+  });
+  return Object.entries(map)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+}
+
+function aggregateFiltered(dimension) {
+  const filtered = getFiltered();
+  const map = {};
+  filtered.forEach(r => {
+    const key = String(r[dimension] || '').trim();
+    if (key) map[key] = (map[key] || 0) + r['ราคาเสนอ'];
+  });
+  const isMonth = dimension === 'เดือน';
+  let entries = Object.entries(map)
+    .map(([name, value]) => ({ name, value }));
+  if (isMonth) {
+    // Sort by month order
+    const monthOrder = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    entries.sort((a, b) => {
+      const ai = monthOrder.findIndex(m => a.name.startsWith(m));
+      const bi = monthOrder.findIndex(m => b.name.startsWith(m));
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+  } else {
+    entries.sort((a, b) => b.value - a.value);
+  }
+  return isMonth ? entries : entries.slice(0, 12);
+}
+
+function top10(dimension) {
+  const filtered = getFiltered();
+  const map = {};
+  filtered.forEach(r => {
+    const key = String(r[dimension] || '').trim();
+    if (key) map[key] = (map[key] || 0) + r['ราคาเสนอ'];
+  });
+  return Object.entries(map)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+}
+
+let mainChart = null;
+
+function render() {
+  const filtered = getFiltered();
+  const app = document.getElementById('app');
+
+  // Summary
+  const totalPrice = filtered.reduce((s, r) => s + r['ราคาเสนอ'], 0);
+  const uniqueDepts = new Set(filtered.map(r => r['หน่วยงาน']).filter(Boolean)).size;
+  const uniqueItems = new Set(filtered.map(r => r['รายการ']).filter(Boolean)).size;
+
+  const planTypes = ['ในแผน', 'นอกแผน', 'ทดแทน'];
+  const planBreakdown = planTypes.map(pt => ({
+    label: pt,
+    value: filtered.filter(r => r['ประเภทแผน'] === pt).reduce((s, r) => s + r['ราคาเสนอ'], 0),
+  }));
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(PAGE * PAGE_SIZE, (PAGE + 1) * PAGE_SIZE);
+
+  // Filter options
+  const filterOptions = {};
+  FILTER_KEYS.forEach(k => { filterOptions[k] = getFilterOptions(k); });
+
+  const activeFilterCount = FILTER_KEYS.reduce((acc, k) => acc + ((FILTERS[k] && FILTERS[k].length > 0) ? 1 : 0), 0);
+
+  let html = `
+    <div class="header">
+      <div class="header-left">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f9/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%97%E0%B8%A3%E0%B8%A7%E0%B8%87%E0%B8%AA%E0%B8%B2%E0%B8%98%E0%B8%B2%E0%B8%A3%E0%B8%93%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88.png?utm_source=th.wikipedia.org&utm_campaign=index&utm_content=original" crossorigin="anonymous" alt="">
+        <div>
+          <div class="header-title">ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง</div>
+          <div class="header-sub">CL69 · PROCUREMENT REGISTRY DASHBOARD</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <span><span class="live-dot"></span> LIVE</span>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="filter-header">
+          <h3>🔍 ตัวกรอง</h3>
+          ${activeFilterCount > 0 ? `<span class="filter-badge">${activeFilterCount}</span>` : ''}
+          ${activeFilterCount > 0 ? '<button class="btn" onclick="clearFilters()" style="margin-left:auto;font-size:11px;color:#6b7280">ล้างตัวกรอง</button>' : ''}
+        </div>
+        <div class="filter-grid">
+          ${FILTER_KEYS.map(key => `
+            <div class="filter-group">
+              <label>${key}</label>
+              <select multiple size="1" onchange="toggleFilter('${key}', this)" style="height:32px">
+                <option value="">ทั้งหมด</option>
+                ${filterOptions[key].map(opt => `<option value="${opt}" ${(FILTERS[key]||[]).includes(opt) ? 'selected' : ''}>${opt}</option>`).join('')}
+              </select>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">ราคารวม</div>
+          <div class="summary-value" style="color:#059669">${formatCurrency(totalPrice)}</div>
+          <div class="summary-sub">บาท</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">จำนวนหน่วยงาน</div>
+          <div class="summary-value" style="color:#d97706">${uniqueDepts.toLocaleString('th-TH')}</div>
+          <div class="summary-sub">หน่วยงาน</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">จำนวนรายการ</div>
+          <div class="summary-value" style="color:#2563eb">${uniqueItems.toLocaleString('th-TH')}</div>
+          <div class="summary-sub">รายการ</div>
+        </div>
+      </div>
+
+      <!-- Plan Breakdown -->
+      <div class="plan-grid">
+        ${planBreakdown.map(p => `
+          <div class="plan-card">
+            <div class="plan-label">
+              <span class="plan-dot" style="background:${p.label==='ในแผน'?'#10b981':p.label==='นอกแผน'?'#f59e0b':'#ef4444'}"></span>
+              ${p.label}
+            </div>
+            <div class="plan-value">${formatCurrency(p.value)}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Main Chart -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="section-title">
+          <span class="section-bar" style="background:#059669"></span>
+          <h2>ยอดรวมราคาเสนอ จำแนกตาม</h2>
+        </div>
+        <div class="chart-tabs">
+          ${DIMENSIONS.map(d => `<button class="chart-tab ${CHART_DIM===d.key?'active':''}" onclick="CHART_DIM='${d.key}';render()">${d.label}</button>`).join('')}
+        </div>
+        <canvas id="mainChart" height="300"></canvas>
+      </div>
+
+      <!-- Top 10 -->
+      <div class="section-title">
+        <span class="section-bar" style="background:#059669"></span>
+        <h2>TOP 10 วิเคราะห์</h2>
+      </div>
+      <div class="top10-grid">
+        ${['กลุ่มภารกิจ','กลุ่มงาน','หน่วยงาน','รายการ','หมวด','ประเภท'].map(dim => {
+          const data = top10(dim);
+          const maxVal = data.length > 0 ? data[0].value : 1;
+          return `<div class="top10-card">
+            <h4>TOP 10 · ${dim}</h4>
+            ${data.length === 0 ? '<div class="empty">ไม่มีข้อมูล</div>' : data.map((d, i) => `
+              <div class="top10-bar">
+                <div class="label" title="${d.name}">${d.name}</div>
+                <div class="bar-bg"><div class="bar-fill" style="width:${(d.value/maxVal*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div></div>
+                <div class="value">${formatCompact(d.value)}</div>
+              </div>
+            `).join('')}
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Data Table -->
+      <div class="section-title" style="margin-top:16px">
+        <span class="section-bar" style="background:#9ca3af"></span>
+        <h2>ตารางข้อมูล</h2>
+      </div>
+      <div class="card">
+        <div class="table-header">
+          <div class="search">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="ค้นหาข้อมูล..." value="${SEARCH}" oninput="SEARCH=this.value;PAGE=0;render()">
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="count">${filtered.length} รายการ</span>
+            <button class="btn" onclick="exportCSV(filtered)">📥 ส่งออก CSV</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr>
+              ${COLUMNS.map(c => {
+                const isSorted = SORT_KEY === c.key;
+                const arrow = isSorted ? (SORT_DIR === 'asc' ? ' ▲' : ' ▼') : '';
+                return `<th class="${isSorted?'sorted':''}" onclick="handleSort('${c.key}')">${c.label}<span class="sort-icon">${arrow}</span></th>`;
+              }).join('')}
+            </tr></thead>
+            <tbody>
+              ${paged.length === 0 ? `<tr><td colspan="${COLUMNS.length}" class="empty">ไม่พบข้อมูล</td></tr>` :
+                paged.map(r => `<tr>
+                  ${COLUMNS.map(c => {
+                    const val = c.key === 'ราคาเสนอ' ? formatCurrency(r['ราคาเสนอ']) : String(r[c.key] || '');
+                    const cls = c.key === 'ราคาเสนอ' ? ' class="price"' : '';
+                    return `<td${cls} title="${String(r[c.key]||'').replace(/"/g,'&quot;')}">${val}</td>`;
+                  }).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${totalPages > 1 ? `
+        <div class="pagination">
+          <div class="info">หน้า ${PAGE+1} จาก ${totalPages}</div>
+          <div class="pages">
+            <button ${PAGE===0?'disabled':''} onclick="PAGE--;render()">‹</button>
+            ${Array.from({length: Math.min(5, totalPages)}, (_, i) => {
+              let pn; if (totalPages<=5) pn=i; else if (PAGE<3) pn=i; else if (PAGE>totalPages-4) pn=totalPages-5+i; else pn=PAGE-2+i;
+              return `<button class="${pn===PAGE?'active':''}" onclick="PAGE=${pn};render()">${pn+1}</button>`;
+            }).join('')}
+            <button ${PAGE>=totalPages-1?'disabled':''} onclick="PAGE++;render()">›</button>
+          </div>
+        </div>` : ''}
+      </div>
+
+      <footer>CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง</footer>
+    </div>
+  `;
+
+  app.innerHTML = html;
+
+  // Render Chart.js
+  renderMainChart();
+}
+
+function renderMainChart() {
+  const data = aggregateFiltered(CHART_DIM);
+  const canvas = document.getElementById('mainChart');
+  if (!canvas) return;
+
+  if (mainChart) mainChart.destroy();
+
+  const isMonth = CHART_DIM === 'เดือน';
+  const displayData = isMonth ? data : data.slice(0, 12);
+
+  mainChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: displayData.map(d => d.name),
+      datasets: [{
+        data: displayData.map(d => d.value),
+        backgroundColor: displayData.map((_, i) => COLORS[i % COLORS.length]),
+        borderRadius: 4,
+        maxBarThickness: 40,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => '฿' + formatCurrency(ctx.raw),
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            font: { family: 'Prompt', size: 10 },
+            maxRotation: 45,
+            callback: function(val) {
+              const label = this.getLabelForValue(val);
+              return label.length > 14 ? label.slice(0, 14) + '…' : label;
+            }
+          },
+          grid: { display: false }
+        },
+        y: {
+          ticks: {
+            font: { family: 'Prompt', size: 10 },
+            callback: v => formatCompact(v)
+          },
+          grid: { color: '#f3f4f6' }
+        }
+      }
+    }
+  });
+}
+
+function handleSort(key) {
+  if (SORT_KEY === key) {
+    if (SORT_DIR === 'asc') SORT_DIR = 'desc';
+    else if (SORT_DIR === 'desc') { SORT_KEY = null; SORT_DIR = null; }
+  } else {
+    SORT_KEY = key;
+    SORT_DIR = 'asc';
+  }
+  PAGE = 0;
+  render();
+}
+
+function toggleFilter(key, selectEl) {
+  const selected = Array.from(selectEl.selectedOptions).map(o => o.value).filter(v => v);
+  FILTERS[key] = selected;
+  PAGE = 0;
+  render();
+}
+
+function clearFilters() {
+  FILTERS = {};
+  PAGE = 0;
+  render();
+}
+
+function exportCSV(data) {
+  const headers = COLUMNS.map(c => c.label).join(',');
+  const rows = data.map(r => COLUMNS.map(c => {
+    const val = c.key === 'ราคาเสนอ' ? r['ราคาเสนอ'] : String(r[c.key] || '');
+    return '"' + String(val).replace(/"/g, '""') + '"';
+  }).join(','));
+  const csv = [headers, ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'data_export.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Load data from GAS backend
+function init() {
+  google.script.run
+    .withSuccessHandler(function(data) {
+      ALL_DATA = data;
+      document.getElementById('loading').style.display = 'none';
+      render();
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('loading').innerHTML = `<div style="color:#ef4444">เกิดข้อผิดพลาด: ${err.message || err}</div>`;
+    })
+    .getSheetData();
+}
+
+// Also support running outside GAS (direct browser preview)
+if (typeof google === 'undefined' || !google.script) {
+  // Fallback: try to load from Google Sheets CSV directly
+  document.getElementById('loading').innerHTML = '<div class="loading-spinner"></div><div class="loading-text">กำลังเชื่อมต่อ Google Sheets...</div>';
+  const SHEET_ID = '1UtSyrAUOXdtRiztXbN4ntobPeS0fMErUrAIeK4NRxcw';
+  const SHEET_NAME = 'sheet99';
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+  fetch(url)
+    .then(r => r.text())
+    .then(csv => {
+      ALL_DATA = parseCSV(csv);
+      document.getElementById('loading').style.display = 'none';
+      render();
+    })
+    .catch(err => {
+      document.getElementById('loading').innerHTML = `<div style="color:#ef4444">เกิดข้อผิดพลาด: ${err.message}</div>`;
+    });
+}
+
+function parseCSV(text) {
+  const lines = [];
+  let line = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { line.push(field); field = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i+1] === '\n') i++;
+        line.push(field); field = '';
+        if (line.length > 1 || line[0]) lines.push(line);
+        line = [];
+      } else field += ch;
+    }
+  }
+  line.push(field);
+  if (line.length > 1 || line[0]) lines.push(line);
+  if (lines.length < 2) return [];
+
+  const months = {
+    'มกราคม':0,'กุมภาพันธ์':1,'มีนาคม':2,'เมษายน':3,'พฤษภาคม':4,'มิถุนายน':5,
+    'กรกฎาคม':6,'สิงหาคม':7,'กันยายน':8,'ตุลาคม':9,'พฤศจิกายน':10,'ธันวาคม':11,
+    'ม.ค.':0,'ก.พ.':1,'มี.ค.':2,'เม.ย.':3,'พ.ค.':4,'มิ.ย.':5,'ก.ค.':6,'ส.ค.':7,'ก.ย.':8,'ต.ค.':9,'พ.ย.':10,'ธ.ค.':11,
+  };
+  const monthNames = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+  function parseMonth(val) {
+    const s = val.trim();
+    const m = s.match(/([ก-๙a-zA-Z\.]+)\s*(\d{4})/);
+    if (m) {
+      let yr = parseInt(m[2], 10);
+      const mi = months[m[1]] !== undefined ? months[m[1]] : 0;
+      if (yr < 2000) yr -= 543;
+      return monthNames[mi] + ' ' + (yr + 543);
+    }
+    return s;
+  }
+
+  function toBE(val) {
+    const s = val.trim();
+    const m = s.match(/(.*?)(\d{4})(.*)/);
+    if (m) { const y = parseInt(m[2],10); if (y>=2000&&y<=2100) return m[1]+(y+543)+m[3]; }
+    return s;
+  }
+
+  return lines.slice(1).filter(l => l.length >= 10).map(l => ({
+    'เลขทะเบียนคุม': (l[0]||'').trim(),
+    'เดือน': parseMonth(l[1]||''),
+    'กลุ่มภารกิจ': toBE(l[2]||''),
+    'กลุ่มงาน': toBE(l[3]||''),
+    'หน่วยงาน': toBE(l[4]||''),
+    'รายการ': toBE(l[5]||''),
+    'หมวด': (l[6]||'').trim(),
+    'ประเภท': (l[7]||'').trim(),
+    'ราคาเสนอ': parseFloat((l[8]||'0').replace(/[, ]/g,'')) || 0,
+    'ประเภทแผน': (l[9]||'').trim(),
+    '_rawMonth': (l[1]||'').trim(),
+  })).filter(r => r['เลขทะเบียนคุม'] || r['กลุ่มภารกิจ'] || r['หน่วยงาน']);
+}
+
+if (typeof google !== 'undefined' && google.script) {
+  init();
+}
+</script>
+
+</body>
+</html>
