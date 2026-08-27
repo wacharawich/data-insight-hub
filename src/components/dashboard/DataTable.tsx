@@ -101,8 +101,17 @@ function wrapText(
   return lines;
 }
 
+async function ensureFontLoaded() {
+  try {
+    await document.fonts.load("16px 'Prompt'");
+  } catch {
+    // Font may already be loaded or unavailable; continue anyway
+  }
+}
+
 async function exportPDF(data: RowData[]) {
   const { default: jsPDF } = await import("jspdf");
+  await ensureFontLoaded();
 
   const SCALE = 2;
   const COL_WIDTHS = [100, 60, 110, 110, 100, 130, 80, 80, 90, 70];
@@ -346,10 +355,10 @@ export default function DataTable({ data }: { data: RowData[] }) {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              className="pl-8 h-8 text-xs bg-gray-50 border-gray-200 font-mono"
+              className="pl-8 h-8 text-xs bg-gray-50 border-gray-200"
             />
           </div>
-          <span className="text-[10px] text-gray-400 font-mono whitespace-nowrap">
+          <span className="text-[10px] text-gray-400 whitespace-nowrap">
             {filtered.length} รายการ
           </span>
         </div>
@@ -358,7 +367,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs gap-1.5 font-mono"
+            className="h-8 text-xs gap-1.5"
             onClick={() => setShowExport(!showExport)}
           >
             <Download className="w-3 h-3" />
@@ -371,7 +380,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   exportPDF(filtered);
                   setShowExport(false);
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-t-lg font-mono"
+                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-t-lg"
               >
                 <FileText className="w-3.5 h-3.5 text-gray-400" />
                 PDF
@@ -381,7 +390,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   exportCSV(filtered);
                   setShowExport(false);
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-b-lg border-t border-gray-100 font-mono"
+                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-b-lg border-t border-gray-100"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-gray-400" />
                 CSV
@@ -402,7 +411,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   <TableHead
                     key={col.key}
                     onClick={() => handleSort(col.key)}
-                    className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-mono h-9 whitespace-nowrap cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                    className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider h-9 whitespace-nowrap cursor-pointer select-none hover:bg-gray-100 transition-colors"
                   >
                     <span className="inline-flex items-center gap-1">
                       {col.label}
@@ -426,7 +435,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
               <TableRow>
                 <TableCell
                   colSpan={COLUMNS.length}
-                  className="text-center py-12 text-gray-400 text-xs font-mono"
+                  className="text-center py-12 text-gray-400 text-xs"
                 >
                   ไม่พบข้อมูล
                 </TableCell>
@@ -440,7 +449,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   {COLUMNS.map((col) => (
                     <TableCell
                       key={col.key}
-                      className="text-xs py-2 font-mono max-w-[200px]"
+                      className="text-xs py-2 max-w-[200px]"
                     >
                       {col.key === "ราคาเสนอ"
                         ? (
@@ -474,7 +483,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-          <span className="text-[10px] text-gray-400 font-mono">
+          <span className="text-[10px] text-gray-400">
             หน้า {page + 1} จาก {totalPages}
           </span>
           <div className="flex items-center gap-1">
@@ -503,7 +512,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   key={pageNum}
                   variant={pageNum === page ? "default" : "outline"}
                   size="sm"
-                  className={`h-7 w-7 p-0 text-[10px] font-mono ${
+                  className={`h-7 w-7 p-0 text-[10px] ${
                     pageNum === page ? "bg-emerald-600 hover:bg-emerald-700" : ""
                   }`}
                   onClick={() => setPage(pageNum)}
