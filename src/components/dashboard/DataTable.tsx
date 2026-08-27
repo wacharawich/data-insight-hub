@@ -67,125 +67,214 @@ function exportCSV(data: RowData[]) {
   URL.revokeObjectURL(url);
 }
 
-async function fetchLogoBase64(): Promise<string> {
-  try {
-    const res = await fetch(
-      "https://upload.wikimedia.org/wikipedia/commons/f/f9/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%97%E0%B8%A3%E0%B8%A7%E0%B8%87%E0%B8%AA%E0%B8%B2%E0%B8%98%E0%B8%B2%E0%B8%A3%E0%B8%93%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88.png?utm_source=th.wikipedia.org&utm_campaign=index&utm_content=original",
-    );
-    if (!res.ok) return "";
-    const blob = await res.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => resolve("");
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return "";
+const LOGO_URL =
+  "https://upload.wikimedia.org/wikipedia/commons/f/f9/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%97%E0%B8%A3%E0%B8%A7%E0%B8%87%E0%B8%AA%E0%B8%B2%E0%B8%98%E0%B8%B2%E0%B8%A3%E0%B8%93%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88.png?utm_source=th.wikipedia.org&utm_campaign=index&utm_content=original";
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string[] {
+  const words = text.split("");
+  const lines: string[] = [];
+  let line = "";
+  for (const ch of words) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = ch;
+    } else {
+      line = test;
+    }
   }
+  if (line) lines.push(line);
+  return lines;
 }
 
 async function exportPDF(data: RowData[]) {
   const { default: jsPDF } = await import("jspdf");
-  const html2canvas = (await import("html2canvas")).default;
 
-  // Pre-fetch logo as base64 to avoid CORS issues
-  const logoBase64 = await fetchLogoBase64();
-  const logoTag = logoBase64
-    ? `<img src="${logoBase64}" style="width:28px;height:28px;border-radius:4px;" />`
-    : "";
+  const SCALE = 2;
+  const COL_WIDTHS = [100, 60, 110, 110, 100, 130, 80, 80, 90, 70];
+  const FONT_SIZE = 10;
+  const ROW_PAD = 4;
+  const HEADER_H = 28;
+  const ROW_H = FONT_SIZE + ROW_PAD * 2;
+  const TABLE_W = COL_WIDTHS.reduce((a, b) => a + b, 0);
+  const MARGIN = 20 * SCALE;
+  const CANVAS_W = TABLE_W + MARGIN * 2;
 
-  // Build a hidden HTML table with the data
-  const container = document.createElement("div");
-  container.style.cssText = "position:fixed;left:-9999px;top:0;width:1122px;font-family:'Prompt',sans-serif;background:#fff;padding:16px 20px;";
+  // Load logo
+  const logoImg = await loadImage(LOGO_URL);
 
-  let html = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        ${logoTag}
-        <div>
-          <div style="font-size:13px;font-weight:700;">CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง</div>
-          <div style="font-size:10px;color:#888;">จำนวน ${data.length} รายการ</div>
-        </div>
-      </div>
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:9px;">
-      <thead>
-        <tr style="background:#f5f5f5;">
-  `;
+  // --- Measure all rows to compute total height ---
+  const offscreen = document.createElement("canvas");
+  offscreen.width = 1;
+  offscreen.height = 1;
+  const measureCtx = offscreen.getContext("2d")!;
+  measureCtx.font = `${FONT_SIZE}px 'Prompt', sans-serif`;
 
-  for (const col of COLUMNS) {
-    html += `<th style="border:1px solid #ddd;padding:4px 6px;text-align:left;font-weight:600;white-space:nowrap;">${col.label}</th>`;
-  }
-  html += "</tr></thead><tbody>";
-
+  const rowHeights: number[] = [];
   for (const row of data) {
-    html += "<tr>";
-    for (const col of COLUMNS) {
+    let maxH = ROW_H;
+    for (let ci = 0; ci < COLUMNS.length; ci++) {
+      const col = COLUMNS[ci];
       const val =
         col.key === "ราคาเสนอ"
           ? formatCurrency(row.ราคาเสนอ)
           : String((row as unknown as Record<string, unknown>)[col.key] || "");
-      const align = col.key === "ราคาเสนอ" ? "text-align:right;" : "";
-      html += `<td style="border:1px solid #ddd;padding:3px 6px;white-space:pre-wrap;word-break:break-word;${align}">${val}</td>`;
+      const lines = wrapText(measureCtx, val, COL_WIDTHS[ci] * SCALE - 12);
+      const h = lines.length * (FONT_SIZE * 1.3) + ROW_PAD * 2;
+      if (h > maxH) maxH = h;
     }
-    html += "</tr>";
+    rowHeights.push(maxH);
   }
-  html += "</tbody></table>";
-  container.innerHTML = html;
-  document.body.appendChild(container);
 
-  try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      backgroundColor: "#ffffff",
-    });
+  const totalTableH = rowHeights.reduce((a, b) => a + b, 0);
+  const CANVAS_H = totalTableH + HEADER_H * SCALE + MARGIN * 2 + 40 * SCALE;
 
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+  // --- Draw everything on a real canvas ---
+  const canvas = document.createElement("canvas");
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // A4 landscape: 297 x 210 mm
-    const pdfW = 297;
-    const pdfH = 210;
-    const margin = 8;
-    const usableW = pdfW - margin * 2;
-    const usableH = pdfH - margin * 2;
+  // Header
+  const headerX = MARGIN;
+  const headerY = MARGIN;
+  ctx.fillStyle = "#111827";
+  ctx.font = `bold ${14 * SCALE}px 'Prompt', sans-serif`;
+  ctx.fillText("CL69 \u00B7 \u0E17\u0E23\u0E40\u0E08\u0E23\u0E34\u0E13\u0E04\u0E33\u0E01\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E23\u0E2A\u0E48\u0E07\u0E08\u0E31\u0E14 \u0E23\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E32\u0E07\u0E23\u0E2D\u0E42\u0E21", headerX, headerY + 18 * SCALE);
+  ctx.fillStyle = "#6b7280";
+  ctx.font = `${10 * SCALE}px 'Prompt', sans-serif`;
+  ctx.fillText(`\u0E08\u0E33\u0E01\u0E31\u0E1A ${data.length} \u0E23\u0E21\u0E32\u0E14\u0E22\u0E48\u0E32\u0E07`, headerX, headerY + 34 * SCALE);
 
-    // Scale image to fit page width
-    const scale = usableW / imgWidth;
+  // Draw logo if loaded
+  if (logoImg) {
+    ctx.drawImage(
+      logoImg,
+      CANVAS_W - MARGIN - 28 * SCALE,
+      headerY,
+      28 * SCALE,
+      28 * SCALE,
+    );
+  }
 
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  // Table
+  const tableTop = MARGIN + HEADER_H * SCALE + 10 * SCALE;
+  let y = tableTop;
 
-    // Split across pages if needed
-    const pageImgH = usableH / scale;
-    let srcY = 0;
-    let pageNum = 0;
-
-    while (srcY < imgHeight) {
-      if (pageNum > 0) doc.addPage();
-
-      const sliceH = Math.min(pageImgH, imgHeight - srcY);
-
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = imgWidth;
-      sliceCanvas.height = sliceH;
-      const ctx = sliceCanvas.getContext("2d")!;
-      ctx.drawImage(canvas, 0, srcY, imgWidth, sliceH, 0, 0, imgWidth, sliceH);
-
-      const sliceData = sliceCanvas.toDataURL("image/png");
-      doc.addImage(sliceData, "PNG", margin, margin, usableW, sliceH * scale);
-
-      srcY += sliceH;
-      pageNum++;
+  // Draw all rows including header
+  const drawRow = (
+    cells: string[],
+    bg: string,
+    fg: string,
+    fontWeight: string,
+    rowIdx: number,
+  ) => {
+    const rh = rowIdx === -1 ? HEADER_H * SCALE : rowHeights[rowIdx];
+    ctx.fillStyle = bg;
+    ctx.fillRect(MARGIN, y, TABLE_W * SCALE, rh);
+    ctx.fillStyle = fg;
+    ctx.font = `${fontWeight} ${FONT_SIZE}px 'Prompt', sans-serif`;
+    let x = MARGIN;
+    for (let ci = 0; ci < cells.length; ci++) {
+      const cellW = COL_WIDTHS[ci] * SCALE;
+      // Draw cell border
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, cellW, rh);
+      // Draw text
+      const lines = wrapText(ctx, cells[ci], cellW - 12);
+      const textY = y + ROW_PAD + FONT_SIZE;
+      for (let li = 0; li < lines.length; li++) {
+        ctx.fillText(lines[li], x + 6, textY + li * FONT_SIZE * 1.3);
+      }
+      x += cellW;
     }
+    y += rh;
+  };
 
-    doc.save("data_export.pdf");
-  } finally {
-    document.body.removeChild(container);
+  // Header row
+  drawRow(
+    COLUMNS.map((c) => c.label),
+    "#f3f4f6",
+    "#111827",
+    "bold",
+    -1,
+  );
+
+  // Data rows
+  for (let ri = 0; ri < data.length; ri++) {
+    const row = data[ri];
+    const cells = COLUMNS.map((col) =>
+      col.key === "ราคาเสนอ"
+        ? formatCurrency(row.ราคาเสนอ)
+        : String((row as unknown as Record<string, unknown>)[col.key] || ""),
+    );
+    drawRow(
+      cells,
+      ri % 2 === 0 ? "#ffffff" : "#f9fafb",
+      "#374151",
+      "normal",
+      ri,
+    );
   }
+
+  // --- Build PDF from canvas slices ---
+  const imgData = canvas.toDataURL("image/png");
+  const imgW = canvas.width;
+  const imgH = canvas.height;
+
+  // A4 landscape: 297 x 210 mm
+  const pdfW = 297;
+  const pdfH = 210;
+  const pdfMargin = 8;
+  const usableW = pdfW - pdfMargin * 2;
+  const usableH = pdfH - pdfMargin * 2;
+  const scale = usableW / imgW;
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+  const pageImgH = usableH / scale;
+  let srcY = 0;
+  let pageNum = 0;
+
+  while (srcY < imgH) {
+    if (pageNum > 0) doc.addPage();
+    const sliceH = Math.min(pageImgH, imgH - srcY);
+
+    const sliceCanvas = document.createElement("canvas");
+    sliceCanvas.width = imgW;
+    sliceCanvas.height = sliceH;
+    const sCtx = sliceCanvas.getContext("2d")!;
+    sCtx.drawImage(canvas, 0, srcY, imgW, sliceH, 0, 0, imgW, sliceH);
+
+    doc.addImage(
+      sliceCanvas.toDataURL("image/png"),
+      "PNG",
+      pdfMargin,
+      pdfMargin,
+      usableW,
+      sliceH * scale,
+    );
+    srcY += sliceH;
+    pageNum++;
+  }
+
+  doc.save("data_export.pdf");
 }
 
 export default function DataTable({ data }: { data: RowData[] }) {
@@ -285,7 +374,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                 className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-t-lg font-mono"
               >
                 <FileText className="w-3.5 h-3.5 text-gray-400" />
-                PDF (A4 แนวนอน)
+                PDF
               </button>
               <button
                 onClick={() => {
