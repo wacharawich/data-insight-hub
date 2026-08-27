@@ -67,19 +67,42 @@ function exportCSV(data: RowData[]) {
   URL.revokeObjectURL(url);
 }
 
+async function fetchLogoBase64(): Promise<string> {
+  try {
+    const res = await fetch(
+      "https://upload.wikimedia.org/wikipedia/commons/f/f9/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%97%E0%B8%A3%E0%B8%A7%E0%B8%87%E0%B8%AA%E0%B8%B2%E0%B8%98%E0%B8%B2%E0%B8%A3%E0%B8%93%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88.png?utm_source=th.wikipedia.org&utm_campaign=index&utm_content=original",
+    );
+    if (!res.ok) return "";
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return "";
+  }
+}
+
 async function exportPDF(data: RowData[]) {
   const { default: jsPDF } = await import("jspdf");
   const html2canvas = (await import("html2canvas")).default;
+
+  // Pre-fetch logo as base64 to avoid CORS issues
+  const logoBase64 = await fetchLogoBase64();
+  const logoTag = logoBase64
+    ? `<img src="${logoBase64}" style="width:28px;height:28px;border-radius:4px;" />`
+    : "";
 
   // Build a hidden HTML table with the data
   const container = document.createElement("div");
   container.style.cssText = "position:fixed;left:-9999px;top:0;width:1122px;font-family:'Prompt',sans-serif;background:#fff;padding:16px 20px;";
 
-  // Header with logo
   let html = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f9/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%97%E0%B8%A3%E0%B8%A7%E0%B8%87%E0%B8%AA%E0%B8%B2%E0%B8%98%E0%B8%B2%E0%B8%A3%E0%B8%93%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88.png?utm_source=th.wikipedia.org&utm_campaign=index&utm_content=original" style="width:28px;height:28px;border-radius:4px;" crossorigin="anonymous" />
+        ${logoTag}
         <div>
           <div style="font-size:13px;font-weight:700;">CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง</div>
           <div style="font-size:10px;color:#888;">จำนวน ${data.length} รายการ</div>
@@ -116,10 +139,11 @@ async function exportPDF(data: RowData[]) {
     const canvas = await html2canvas(container, {
       scale: 2,
       useCORS: true,
+      allowTaint: true,
       logging: false,
+      backgroundColor: "#ffffff",
     });
 
-    const imgData = canvas.toDataURL("image/png");
     const imgWidth = canvas.width;
     const imgHeight = canvas.height;
 
@@ -132,21 +156,19 @@ async function exportPDF(data: RowData[]) {
 
     // Scale image to fit page width
     const scale = usableW / imgWidth;
-    const scaledH = imgHeight * scale;
 
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
     // Split across pages if needed
     const pageImgH = usableH / scale;
     let srcY = 0;
-    let page = 0;
+    let pageNum = 0;
 
     while (srcY < imgHeight) {
-      if (page > 0) doc.addPage();
+      if (pageNum > 0) doc.addPage();
 
       const sliceH = Math.min(pageImgH, imgHeight - srcY);
 
-      // Create a slice canvas
       const sliceCanvas = document.createElement("canvas");
       sliceCanvas.width = imgWidth;
       sliceCanvas.height = sliceH;
@@ -157,7 +179,7 @@ async function exportPDF(data: RowData[]) {
       doc.addImage(sliceData, "PNG", margin, margin, usableW, sliceH * scale);
 
       srcY += sliceH;
-      page++;
+      pageNum++;
     }
 
     doc.save("data_export.pdf");
