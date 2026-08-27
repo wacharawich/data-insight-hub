@@ -34,7 +34,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           <span className="text-sm font-mono text-gray-500">
-            Loading data...
+            กำลังโหลดข้อมูล...
           </span>
         </div>
         <div className="w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
@@ -52,11 +52,11 @@ export default function Dashboard() {
             <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
           <h2 className="text-lg font-semibold text-gray-800 font-mono">
-            Something went wrong
+            เกิดข้อผิดพลาด
           </h2>
           <p className="text-sm text-gray-500 font-mono">{error}</p>
           <p className="text-xs text-gray-400 font-mono">
-            Check your internet connection and try again.
+            ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่อีกครั้ง
           </p>
         </div>
       </div>
@@ -96,7 +96,7 @@ export default function Dashboard() {
               className="h-7 text-xs gap-1.5 font-mono text-gray-500 hover:text-emerald-600"
             >
               <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync'}
+              {syncing ? 'กำลังซิงก์...' : 'ซิงก์'}
             </Button>
           </div>
         </div>
@@ -123,7 +123,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1 h-4 bg-emerald-500 rounded-full" />
             <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wider font-mono">
-              TOP 10 ANALYSIS
+              TOP 10 วิเคราะห์
             </h2>
           </div>
           <Top10Charts data={filteredData} />
@@ -134,7 +134,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1 h-4 bg-gray-400 rounded-full" />
             <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wider font-mono">
-              DATA BROWSER
+              ตารางข้อมูล
             </h2>
           </div>
           <DataTable data={filteredData} />

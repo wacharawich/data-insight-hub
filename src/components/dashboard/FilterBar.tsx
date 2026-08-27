@@ -31,15 +31,15 @@ interface FilterBarProps {
 }
 
 const FILTER_LABELS: Record<string, string> = {
-  เลขทะเบียนคุม: "Registry No.",
-  เดือน: "Month",
-  กลุ่มภารกิจ: "Mission Group",
-  กลุ่มงาน: "Work Group",
-  หน่วยงาน: "Department",
-  รายการ: "Item",
-  หมวด: "Category",
-  ประเภท: "Type",
-  ประเภทแผน: "Plan Type",
+  เลขทะเบียนคุม: "เลขทะเบียนคุม",
+  เดือน: "เดือน",
+  กลุ่มภารกิจ: "กลุ่มภารกิจ",
+  กลุ่มงาน: "กลุ่มงาน",
+  หน่วยงาน: "หน่วยงาน",
+  รายการ: "รายการ",
+  หมวด: "หมวด",
+  ประเภท: "ประเภท",
+  ประเภทแผน: "ประเภทแผน",
 };
 
 const FILTER_KEYS = ALL_FILTER_FIELDS;
@@ -71,18 +71,18 @@ function MultiSelectFilter({
           >
             <span className="truncate text-gray-700">
               {selected.length === 0
-                ? "All"
-                : `${selected.length} selected`}
+                ? "ทั้งหมด"
+                : `${selected.length} รายการ`}
             </span>
             <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-0" align="start">
           <Command>
-            <CommandInput placeholder={`Search ${label}...`} className="h-8 text-xs" />
+            <CommandInput placeholder={`ค้นหา ${label}...`} className="h-8 text-xs" />
             <CommandList className="max-h-48">
               <CommandEmpty className="py-3 text-xs text-gray-400">
-                No results.
+                ไม่พบข้อมูล
               </CommandEmpty>
               <CommandGroup>
                 {selected.length > 0 && (
@@ -91,7 +91,7 @@ function MultiSelectFilter({
                     className="cursor-pointer text-xs text-red-600 hover:text-red-700"
                   >
                     <X className="mr-2 h-3 w-3" />
-                    Clear all
+                    ล้างทั้งหมด
                   </CommandItem>
                 )}
                 {options.map((opt) => {
@@ -160,7 +160,7 @@ export default function FilterBar({
       <div className="flex items-center gap-2 mb-3">
         <Filter className="w-4 h-4 text-gray-500" />
         <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider font-mono">
-          Filters
+          ตัวกรอง
         </h3>
         {activeCount > 0 && (
           <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-full">
@@ -175,7 +175,7 @@ export default function FilterBar({
             className="ml-auto h-7 text-xs gap-1 text-gray-500 hover:text-red-600"
           >
             <X className="w-3 h-3" />
-            Clear all
+            ล้างตัวกรอง
           </Button>
         )}
       </div>
@@ -203,7 +203,7 @@ export default function FilterBar({
       {/* Date range filter */}
       <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
         <label className="text-[10px] font-medium text-gray-500 uppercase font-mono whitespace-nowrap">
-          Date range
+          ช่วงเวลา
         </label>
         <Input
           type="date"
@@ -219,7 +219,7 @@ export default function FilterBar({
           }}
           className="h-7 text-xs bg-gray-50 border-gray-200 font-mono w-36"
         />
-        <span className="text-xs text-gray-400">to</span>
+        <span className="text-xs text-gray-400">ถึง</span>
         <Input
           type="date"
           value={filters.dateRange?.end || ""}

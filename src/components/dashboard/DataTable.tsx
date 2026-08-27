@@ -20,6 +20,8 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   FileText,
   FileSpreadsheet,
 } from "lucide-react";
@@ -38,6 +40,8 @@ const COLUMNS = [
 ];
 
 const PAGE_SIZE = 20;
+
+type SortDir = "asc" | "desc" | null;
 
 function formatCurrency(n: number): string {
   return n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -141,19 +145,53 @@ export default function DataTable({ data }: { data: RowData[] }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [showExport, setShowExport] = useState(false);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>(null);
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDir === "asc") setSortDir("desc");
+      else if (sortDir === "desc") { setSortKey(null); setSortDir(null); }
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return data;
-    const q = search.toLowerCase();
-    return data.filter((row) =>
-      COLUMNS.some((col) => {
-        const val = col.key === "ราคาเสนอ"
-          ? String(row.ราคาเสนอ)
-          : String((row as unknown as Record<string, unknown>)[col.key] || "");
-        return val.toLowerCase().includes(q);
-      }),
-    );
-  }, [data, search]);
+    let result = data;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((row) =>
+        COLUMNS.some((col) => {
+          const val = col.key === "ราคาเสนอ"
+            ? String(row.ราคาเสนอ)
+            : String((row as unknown as Record<string, unknown>)[col.key] || "");
+          return val.toLowerCase().includes(q);
+        }),
+      );
+    }
+    // Sort
+    if (sortKey && sortDir) {
+      result = [...result].sort((a, b) => {
+        let aVal: string | number;
+        let bVal: string | number;
+        if (sortKey === "ราคาเสนอ") {
+          aVal = a.ราคาเสนอ;
+          bVal = b.ราคาเสนอ;
+        } else {
+          aVal = String((a as unknown as Record<string, unknown>)[sortKey] || "");
+          bVal = String((b as unknown as Record<string, unknown>)[sortKey] || "");
+        }
+        if (typeof aVal === "number" && typeof bVal === "number") {
+          return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+        }
+        const cmp = String(aVal).localeCompare(String(bVal), "th");
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
+    return result;
+  }, [data, search, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -166,7 +204,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
           <div className="relative flex-1 sm:w-72">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <Input
-              placeholder="Search records..."
+              placeholder="ค้นหาข้อมูล..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -188,7 +226,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
             onClick={() => setShowExport(!showExport)}
           >
             <Download className="w-3 h-3" />
-            Export
+            ส่งออก
           </Button>
           {showExport && (
             <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
@@ -222,14 +260,29 @@ export default function DataTable({ data }: { data: RowData[] }) {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50/80">
-              {COLUMNS.map((col) => (
-                <TableHead
-                  key={col.key}
-                  className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-mono h-9 whitespace-nowrap"
-                >
-                  {col.label}
-                </TableHead>
-              ))}
+              {COLUMNS.map((col) => {
+                const isActive = sortKey === col.key;
+                return (
+                  <TableHead
+                    key={col.key}
+                    onClick={() => handleSort(col.key)}
+                    className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider font-mono h-9 whitespace-nowrap cursor-pointer select-none hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {isActive ? (
+                        sortDir === "asc" ? (
+                          <ChevronUp className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3 text-emerald-600" />
+                        )
+                      ) : (
+                        <span className="w-3 h-3" />
+                      )}
+                    </span>
+                  </TableHead>
+                );
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -239,7 +292,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   colSpan={COLUMNS.length}
                   className="text-center py-12 text-gray-400 text-xs font-mono"
                 >
-                  No results found.
+                  ไม่พบข้อมูล
                 </TableCell>
               </TableRow>
             ) : (
