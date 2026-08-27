@@ -18,6 +18,7 @@ import type { RowData } from "@/hooks/use-google-sheets-data";
 import {
   Search,
   Download,
+  FileText,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -63,6 +64,144 @@ function exportCSV(data: RowData[]) {
   a.download = "data_export.csv";
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxW: number,
+): string[] {
+  const chars = text.split("");
+  const lines: string[] = [];
+  let line = "";
+  for (const ch of chars) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line);
+      line = ch;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+async function exportPDF(data: RowData[]) {
+  const { default: jsPDF } = await import("jspdf");
+  try { await document.fonts.load("16px 'Prompt'"); } catch {}
+
+  const PDF_W = 297, PDF_H = 210, M = 10;
+  const USABLE_W = PDF_W - M * 2;
+  const COL_RATIOS = [0.12, 0.08, 0.12, 0.12, 0.10, 0.14, 0.08, 0.08, 0.09, 0.07];
+  const colW = COL_RATIOS.map((r) => r * USABLE_W);
+
+  const SC = 3, FS = 9, LH = FS * 1.35, PAD = 2.5;
+  const TITLE_H = 14, HEAD_H = 10;
+
+  // Measure row heights
+  const cv = document.createElement("canvas");
+  cv.width = 1; cv.height = 1;
+  const mCtx = cv.getContext("2d")!;
+  mCtx.font = `${FS * SC}px 'Prompt', sans-serif`;
+
+  const rh: number[] = data.map((row) => {
+    let maxL = 1;
+    for (let ci = 0; ci < COLUMNS.length; ci++) {
+      const val = COLUMNS[ci].key === "ราคาเสนอ"
+        ? formatCurrency(row.ราคาเสนอ)
+        : String((row as unknown as Record<string, unknown>)[COLUMNS[ci].key] || "");
+      const n = wrapText(mCtx, val, colW[ci] * SC - PAD * 2 * SC).length;
+      if (n > maxL) maxL = n;
+    }
+    return maxL * LH + PAD * 2;
+  });
+
+  const dataAreaH = PDF_H - M * 2 - TITLE_H - HEAD_H;
+
+  // Compute pages
+  const pages: { s: number; e: number }[] = [];
+  let acc = 0, ps = 0;
+  for (let i = 0; i < data.length; i++) {
+    if (acc + rh[i] > dataAreaH && i > ps) {
+      pages.push({ s: ps, e: i });
+      ps = i; acc = 0;
+    }
+    acc += rh[i];
+  }
+  if (ps < data.length) pages.push({ s: ps, e: data.length });
+  if (!pages.length) pages.push({ s: 0, e: 0 });
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const d = data;
+
+  for (let pi = 0; pi < pages.length; pi++) {
+    if (pi > 0) doc.addPage();
+    const slice = d.slice(pages[pi].s, pages[pi].e);
+
+    let ch = 0;
+    for (const row of slice) ch += rh[d.indexOf(row)];
+    const pageH = TITLE_H + HEAD_H + ch;
+
+    const cW = Math.round(USABLE_W * SC);
+    const cH = Math.round(pageH * SC);
+    const can = document.createElement("canvas");
+    can.width = cW; can.height = cH;
+    const ctx = can.getContext("2d")!;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, cW, cH);
+    const s = SC;
+
+    // Title
+    ctx.fillStyle = "#111827";
+    ctx.font = `bold ${13 * s}px 'Prompt', sans-serif`;
+    ctx.fillText("CL69 \u00B7 \u0E17\u0E23\u0E40\u0E08\u0E23\u0E34\u0E13\u0E04\u0E33\u0E01\u0E31\u0E1A\u0E1C\u0E34\u0E14\u0E23\u0E2A\u0E48\u0E07\u0E08\u0E31\u0E14 \u0E23\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E32\u0E07\u0E23\u0E2D\u0E42\u0E21", 0, TITLE_H * s * 0.55);
+    ctx.fillStyle = "#6b7280";
+    ctx.font = `${9 * s}px 'Prompt', sans-serif`;
+    const sub = `\u0E08\u0E33\u0E01\u0E31\u0E1A ${d.length} \u0E23\u0E21\u0E32\u0E14\u0E22\u0E48\u0E32\u0E07` + (pages.length > 1 ? ` \u2022 \u0E1E\u0E34\u0E40\u0E28\u0E29 ${pi + 1}/${pages.length}` : "");
+    ctx.fillText(sub, 0, TITLE_H * s * 0.55 + 13 * s);
+
+    let ty = TITLE_H * s;
+
+    const drawRow = (cells: string[], bg: string, fg: string, fw: string, h: number) => {
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, ty, cW, h * s);
+      ctx.fillStyle = fg;
+      ctx.font = `${fw} ${FS * s}px 'Prompt', sans-serif`;
+      let cx = 0;
+      for (let ci = 0; ci < cells.length; ci++) {
+        const cw = colW[ci] * s;
+        ctx.strokeStyle = "#d1d5db";
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx, ty, cw, h * s);
+        const lines = wrapText(ctx, cells[ci], cw - PAD * 2 * s);
+        const tY = ty + PAD * s + FS * s;
+        for (let li = 0; li < lines.length; li++) {
+          ctx.fillText(lines[li], cx + PAD * s, tY + li * LH * s);
+        }
+        cx += cw;
+      }
+      ty += h * s;
+    };
+
+    // Header
+    drawRow(COLUMNS.map((c) => c.label), "#f3f4f6", "#374151", "bold", HEAD_H);
+
+    // Rows
+    for (let ri = 0; ri < slice.length; ri++) {
+      const row = slice[ri];
+      const cells = COLUMNS.map((col) =>
+        col.key === "ราคาเสนอ"
+          ? formatCurrency(row.ราคาเสนอ)
+          : String((row as unknown as Record<string, unknown>)[col.key] || ""),
+      );
+      drawRow(cells, ri % 2 === 0 ? "#fff" : "#f9fafb", "#374151", "normal", rh[d.indexOf(row)]);
+    }
+
+    doc.addImage(can.toDataURL("image/png"), "PNG", M, M, USABLE_W, (can.height / can.width) * USABLE_W);
+  }
+
+  doc.save("data_export.pdf");
 }
 
 export default function DataTable({ data }: { data: RowData[] }) {
@@ -141,15 +280,26 @@ export default function DataTable({ data }: { data: RowData[] }) {
           </span>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 text-xs gap-1.5"
-          onClick={() => exportCSV(filtered)}
-        >
-          <Download className="w-3 h-3" />
-          ส่งออก CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => exportCSV(filtered)}
+          >
+            <Download className="w-3 h-3" />
+            ส่งออก CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => exportPDF(filtered)}
+          >
+            <FileText className="w-3 h-3" />
+            ส่งออก PDF
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
