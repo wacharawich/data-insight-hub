@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { RowData } from "@/hooks/use-google-sheets-data";
 import TruncatedTick from "@/components/dashboard/TruncatedTick";
+import BarLabel from "@/components/dashboard/BarLabel";
 
 const DIMENSIONS: { key: string; label: string }[] = [
   { key: "เดือน", label: "เดือน" },
@@ -141,7 +142,7 @@ export default function BarChartSection({ data }: { data: RowData[] }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={displayData}
-              margin={{ top: 10, right: 10, left: 10, bottom: 80 }}
+              margin={{ top: 20, right: 10, left: 10, bottom: 80 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
@@ -172,7 +173,7 @@ export default function BarChartSection({ data }: { data: RowData[] }) {
                   borderRadius: 8,
                 }}
               />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="value" radius={[4, 4, 0, 0]} label={<BarLabel layout="horizontal" />}>
                 {displayData.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}

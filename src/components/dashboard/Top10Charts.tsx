@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { RowData } from "@/hooks/use-google-sheets-data";
 import TruncatedTick from "@/components/dashboard/TruncatedTick";
+import BarLabel from "@/components/dashboard/BarLabel";
 
 const TOP10_DIMENSIONS = [
   { key: "กลุ่มภารกิจ", label: "กลุ่มภารกิจ" },
@@ -87,7 +88,7 @@ function Top10Chart({
           <BarChart
             data={chartData}
             layout="vertical"
-            margin={{ top: 5, right: 20, left: 5, bottom: 5 }}
+            margin={{ top: 5, right: 60, left: 5, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
             <XAxis
@@ -118,7 +119,7 @@ function Top10Chart({
               }}
               labelStyle={{ fontFamily: "Prompt, monospace" }}
             />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18}>
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={18} label={<BarLabel layout="vertical" />}>
               {chartData.map((_, i) => (
                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
               ))}
