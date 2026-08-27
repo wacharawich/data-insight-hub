@@ -69,76 +69,101 @@ function exportCSV(data: RowData[]) {
 
 async function exportPDF(data: RowData[]) {
   const { default: jsPDF } = await import("jspdf");
-  const { default: autoTable } = await import("jspdf-autotable");
+  const html2canvas = (await import("html2canvas")).default;
 
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: "a4",
-  });
+  // Build a hidden HTML table with the data
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;left:-9999px;top:0;width:1122px;font-family:'Prompt',sans-serif;background:#fff;padding:16px 20px;";
 
-  // Header
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง", 14, 10);
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "normal");
-  doc.text(`จำนวน ${data.length} รายการ`, 14, 15);
+  // Header with logo
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f9/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%97%E0%B8%A3%E0%B8%A7%E0%B8%87%E0%B8%AA%E0%B8%B2%E0%B8%98%E0%B8%B2%E0%B8%A3%E0%B8%93%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88.png?utm_source=th.wikipedia.org&utm_campaign=index&utm_content=original" style="width:28px;height:28px;border-radius:4px;" crossorigin="anonymous" />
+        <div>
+          <div style="font-size:13px;font-weight:700;">CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง</div>
+          <div style="font-size:10px;color:#888;">จำนวน ${data.length} รายการ</div>
+        </div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:9px;">
+      <thead>
+        <tr style="background:#f5f5f5;">
+  `;
 
-  // Logo
-  try {
-    const logoRes = await fetch(
-      "https://upload.wikimedia.org/wikipedia/commons/f/f9/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%97%E0%B8%A3%E0%B8%A7%E0%B8%87%E0%B8%AA%E0%B8%B2%E0%B8%98%E0%B8%B2%E0%B8%A3%E0%B8%93%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88.png?utm_source=th.wikipedia.org&utm_campaign=index&utm_content=original",
-    );
-    if (logoRes.ok) {
-      const blob = await logoRes.blob();
-      const reader = new FileReader();
-      const imgDataUrl = await new Promise<string>((resolve) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-      doc.addImage(imgDataUrl, "PNG", 265, 3, 12, 12);
-    }
-  } catch {
-    // Logo failed to load, continue without it
+  for (const col of COLUMNS) {
+    html += `<th style="border:1px solid #ddd;padding:4px 6px;text-align:left;font-weight:600;white-space:nowrap;">${col.label}</th>`;
   }
+  html += "</tr></thead><tbody>";
 
-  const head = [COLUMNS.map((c) => c.label)];
-  const body = data.map((row) =>
-    COLUMNS.map((col) => {
-      if (col.key === "ราคาเสนอ") return formatCurrency(row.ราคาเสนอ);
-      return String((row as unknown as Record<string, unknown>)[col.key] || "");
-    }),
-  );
+  for (const row of data) {
+    html += "<tr>";
+    for (const col of COLUMNS) {
+      const val =
+        col.key === "ราคาเสนอ"
+          ? formatCurrency(row.ราคาเสนอ)
+          : String((row as unknown as Record<string, unknown>)[col.key] || "");
+      const align = col.key === "ราคาเสนอ" ? "text-align:right;" : "";
+      html += `<td style="border:1px solid #ddd;padding:3px 6px;white-space:pre-wrap;word-break:break-word;${align}">${val}</td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+  container.innerHTML = html;
+  document.body.appendChild(container);
 
-  autoTable(doc, {
-    startY: 18,
-    head,
-    body,
-    styles: {
-      fontSize: 6,
-      cellPadding: 2,
-      overflow: "linebreak",
-      font: "helvetica",
-    },
-    headStyles: {
-      fillColor: [245, 245, 245],
-      textColor: [0, 0, 0],
-      fontStyle: "bold",
-      fontSize: 6,
-      halign: "center",
-    },
-    alternateRowStyles: {
-      fillColor: [250, 250, 250],
-    },
-    columnStyles: {
-      8: { halign: "right" }, // ราคาเสนอ
-    },
-    margin: { top: 18, left: 14, right: 14 },
-    tableWidth: "auto",
-  });
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
 
-  doc.save("data_export.pdf");
+    const imgData = canvas.toDataURL("image/png");
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+
+    // A4 landscape: 297 x 210 mm
+    const pdfW = 297;
+    const pdfH = 210;
+    const margin = 8;
+    const usableW = pdfW - margin * 2;
+    const usableH = pdfH - margin * 2;
+
+    // Scale image to fit page width
+    const scale = usableW / imgWidth;
+    const scaledH = imgHeight * scale;
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    // Split across pages if needed
+    const pageImgH = usableH / scale;
+    let srcY = 0;
+    let page = 0;
+
+    while (srcY < imgHeight) {
+      if (page > 0) doc.addPage();
+
+      const sliceH = Math.min(pageImgH, imgHeight - srcY);
+
+      // Create a slice canvas
+      const sliceCanvas = document.createElement("canvas");
+      sliceCanvas.width = imgWidth;
+      sliceCanvas.height = sliceH;
+      const ctx = sliceCanvas.getContext("2d")!;
+      ctx.drawImage(canvas, 0, srcY, imgWidth, sliceH, 0, 0, imgWidth, sliceH);
+
+      const sliceData = sliceCanvas.toDataURL("image/png");
+      doc.addImage(sliceData, "PNG", margin, margin, usableW, sliceH * scale);
+
+      srcY += sliceH;
+      page++;
+    }
+
+    doc.save("data_export.pdf");
+  } finally {
+    document.body.removeChild(container);
+  }
 }
 
 export default function DataTable({ data }: { data: RowData[] }) {
