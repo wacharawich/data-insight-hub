@@ -71,7 +71,7 @@ async function exportPDF(data: RowData[]) {
   // Header
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง", 14, 10);
+  doc.text("CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง", 14, 10);
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.text(`จำนวน ${data.length} รายการ`, 14, 15);
@@ -161,7 +161,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
           <div className="relative flex-1 sm:w-72">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <Input
-              placeholder="ค้นหาข้อมูล..."
+              placeholder="Search records..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -234,7 +234,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   colSpan={COLUMNS.length}
                   className="text-center py-12 text-gray-400 text-xs font-mono"
                 >
-                  ไม่พบข้อมูล
+                  No results found.
                 </TableCell>
               </TableRow>
             ) : (

@@ -23,7 +23,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
           <span className="text-sm font-mono text-gray-500">
-            กำลังโหลดข้อมูล...
+            Loading data...
           </span>
         </div>
         <div className="w-48 h-1 bg-gray-200 rounded-full overflow-hidden">
@@ -41,11 +41,11 @@ export default function Dashboard() {
             <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
           <h2 className="text-lg font-semibold text-gray-800 font-mono">
-            เกิดข้อผิดพลาด
+            Something went wrong
           </h2>
           <p className="text-sm text-gray-500 font-mono">{error}</p>
           <p className="text-xs text-gray-400 font-mono">
-            ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่อีกครั้ง
+            Check your internet connection and try again.
           </p>
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function Dashboard() {
                 ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง
               </h1>
               <p className="text-[10px] text-gray-400 font-mono">
-                PROCUREMENT REGISTRY DASHBOARD v1.0
+                CL69 · PROCUREMENT REGISTRY DASHBOARD
               </p>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1 h-4 bg-emerald-500 rounded-full" />
             <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wider font-mono">
-              TOP 10 วิเคราะห์
+              TOP 10 ANALYSIS
             </h2>
           </div>
           <Top10Charts data={filteredData} />
@@ -111,15 +111,15 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 mb-3">
             <span className="w-1 h-4 bg-gray-400 rounded-full" />
             <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wider font-mono">
-              ตารางข้อมูล
+              DATA BROWSER
             </h2>
           </div>
           <DataTable data={filteredData} />
         </div>
 
         {/* Footer */}
-        <footer className="text-center py-6 text-[10px] text-gray-400 font-mono border-t border-gray-200">
-          ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง &middot; Data Analytics Dashboard
+        <        footer className="text-center py-6 text-[10px] text-gray-400 font-mono border-t border-gray-200">
+          CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง
         </footer>
       </main>
     </div>

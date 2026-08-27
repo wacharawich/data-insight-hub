@@ -121,7 +121,7 @@ export default function BarChartSection({ data }: { data: RowData[] }) {
       {/* Chart */}
       {displayData.length === 0 ? (
         <div className="flex items-center justify-center h-64 text-gray-400 text-sm font-mono">
-          ไม่มีข้อมูล
+          No data to display.
         </div>
       ) : (
         <div className="h-[360px]">

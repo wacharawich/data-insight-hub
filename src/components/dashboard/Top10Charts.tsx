@@ -70,7 +70,7 @@ function Top10Chart({
           TOP 10 · {label}
         </h4>
         <div className="flex items-center justify-center h-40 text-gray-400 text-xs font-mono">
-          ไม่มีข้อมูล
+          No data available.
         </div>
       </div>
     );
