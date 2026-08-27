@@ -4,7 +4,9 @@ import FilterBar from "@/components/dashboard/FilterBar";
 import BarChartSection from "@/components/dashboard/BarChartSection";
 import Top10Charts from "@/components/dashboard/Top10Charts";
 import DataTable from "@/components/dashboard/DataTable";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
   const {
@@ -15,7 +17,16 @@ export default function Dashboard() {
     filterOptions,
     updateFilter,
     clearFilters,
+    refetch,
   } = useGoogleSheetsData();
+
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await refetch();
+    setSyncing(false);
+  };
 
   if (loading) {
     return (
@@ -72,9 +83,21 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-400 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            LIVE
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSync}
+              disabled={syncing || loading}
+              className="h-7 text-xs gap-1.5 font-mono text-gray-500 hover:text-emerald-600"
+            >
+              <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync'}
+            </Button>
           </div>
         </div>
       </header>

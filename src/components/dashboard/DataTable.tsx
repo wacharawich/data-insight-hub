@@ -9,6 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import type { RowData } from "@/hooks/use-google-sheets-data";
 import {
   Search,
@@ -246,7 +251,7 @@ export default function DataTable({ data }: { data: RowData[] }) {
                   {COLUMNS.map((col) => (
                     <TableCell
                       key={col.key}
-                      className="text-xs py-2 font-mono max-w-[200px] break-words"
+                      className="text-xs py-2 font-mono max-w-[200px]"
                     >
                       {col.key === "ราคาเสนอ"
                         ? (
@@ -254,7 +259,20 @@ export default function DataTable({ data }: { data: RowData[] }) {
                             {formatCurrency(row.ราคาเสนอ)}
                           </span>
                         )
-                        : (row as unknown as Record<string, unknown>)[col.key] as string}
+                        : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="block truncate cursor-default">
+                                {(row as unknown as Record<string, unknown>)[col.key] as string}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs break-words">
+                              <span className="whitespace-normal">
+                                {(row as unknown as Record<string, unknown>)[col.key] as string}
+                              </span>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                     </TableCell>
                   ))}
                 </TableRow>

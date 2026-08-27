@@ -12,6 +12,7 @@ export interface RowData {
   ราคาเสนอ: number;
   ประเภทแผน: string;
   _rawMonth: string;
+  _sortableMonth: number; // CE year*100+month for date range filtering and sorting
 }
 
 export type FilterField = "เลขทะเบียนคุม" | "เดือน" | "กลุ่มภารกิจ" | "กลุ่มงาน" | "หน่วยงาน" | "รายการ" | "หมวด" | "ประเภท" | "ประเภทแผน";
@@ -181,7 +182,7 @@ function parseCSV(text: string): RowData[] {
     .filter((line) => line.length >= 10)
     .map((line) => {
       const rawMonth = line[1]?.trim() || "";
-      const { display: monthDisplay } = parseThaiDate(rawMonth);
+      const { display: monthDisplay, sortable: sortableMonth } = parseThaiDate(rawMonth);
 
       return {
         เลขทะเบียนคุม: line[0]?.trim() || "",
@@ -195,6 +196,7 @@ function parseCSV(text: string): RowData[] {
         ราคาเสนอ: parseNumber(line[8]?.trim() || "0"),
         ประเภทแผน: line[9]?.trim() || "",
         _rawMonth: rawMonth,
+        _sortableMonth: sortableMonth,
       };
     })
     .filter((row) => row.เลขทะเบียนคุม || row.กลุ่มภารกิจ || row.หน่วยงาน);
@@ -206,30 +208,27 @@ export function useGoogleSheetsData() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(CSV_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const parsed = parseCSV(text);
+      setRawData(parsed);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to fetch data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    async function fetchCSV() {
-      try {
-        setLoading(true);
-        const res = await fetch(CSV_URL);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const parsed = parseCSV(text);
-        if (!cancelled) {
-          setRawData(parsed);
-          setError(null);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to fetch data");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    fetchCSV();
+    fetchData();
     return () => { cancelled = true; };
-  }, []);
+  }, [fetchData]);
 
   const updateFilter = useCallback((key: keyof Filters, value: string[] | { start: string; end: string } | null) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -262,6 +261,30 @@ export function useGoogleSheetsData() {
           return false;
         }
       }
+      // Date range filter
+      if (filters.dateRange) {
+        const { start, end } = filters.dateRange;
+        if (start) {
+          const startDate = new Date(start);
+          const startYear = startDate.getFullYear();
+          const startMonth = startDate.getMonth();
+          const rowYear = Math.floor(row._sortableMonth / 100);
+          const rowMonth = row._sortableMonth % 100;
+          if (row._sortableMonth === 0 || rowYear < startYear || (rowYear === startYear && rowMonth < startMonth)) {
+            return false;
+          }
+        }
+        if (end) {
+          const endDate = new Date(end);
+          const endYear = endDate.getFullYear();
+          const endMonth = endDate.getMonth();
+          const rowYear = Math.floor(row._sortableMonth / 100);
+          const rowMonth = row._sortableMonth % 100;
+          if (row._sortableMonth === 0 || rowYear > endYear || (rowYear === endYear && rowMonth > endMonth)) {
+            return false;
+          }
+        }
+      }
       return true;
     });
   }, [rawData, filters]);
@@ -275,5 +298,6 @@ export function useGoogleSheetsData() {
     filterOptions,
     updateFilter,
     clearFilters,
+    refetch: fetchData,
   };
 }

@@ -42,8 +42,8 @@ function formatCurrency(n: number): string {
 function aggregateData(
   data: RowData[],
   dimension: string,
-): { name: string; value: number; fullName: string }[] {
-  const map = new Map<string, number>();
+): { name: string; value: number; fullName: string; sortKey?: number }[] {
+  const map = new Map<string, { value: number; sortKey: number }>();
 
   if (dimension === "ราคาเสนอ") {
     // Group by price ranges
@@ -58,21 +58,33 @@ function aggregateData(
     for (const row of data) {
       const range = ranges.find((r) => row.ราคาเสนอ >= r.min && row.ราคาเสนอ < r.max);
       if (range) {
-        map.set(range.label, (map.get(range.label) || 0) + row.ราคาเสนอ);
+        const existing = map.get(range.label);
+        map.set(range.label, {
+          value: (existing?.value || 0) + row.ราคาเสนอ,
+          sortKey: ranges.indexOf(range),
+        });
       }
     }
   } else {
     for (const row of data) {
       const key = String((row as unknown as Record<string, unknown>)[dimension] || "").trim();
       if (key) {
-        map.set(key, (map.get(key) || 0) + row.ราคาเสนอ);
+        const existing = map.get(key);
+        map.set(key, {
+          value: (existing?.value || 0) + row.ราคาเสนอ,
+          sortKey: row._sortableMonth,
+        });
       }
     }
   }
 
+  const isMonth = dimension === "เดือน";
   const result = Array.from(map.entries())
-    .map(([name, value]) => ({ name, value, fullName: name }))
-    .sort((a, b) => b.value - a.value);
+    .map(([name, { value, sortKey }]) => ({ name, value, fullName: name, sortKey }))
+    .sort((a, b) => {
+      if (isMonth) return (a.sortKey || 0) - (b.sortKey || 0);
+      return b.value - a.value;
+    });
 
   return result;
 }
