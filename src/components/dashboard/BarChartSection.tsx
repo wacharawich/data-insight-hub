@@ -10,6 +10,7 @@ import {
   Cell,
 } from "recharts";
 import type { RowData } from "@/hooks/use-google-sheets-data";
+import TruncatedTick from "@/components/dashboard/TruncatedTick";
 
 const DIMENSIONS: { key: string; label: string }[] = [
   { key: "เดือน", label: "เดือน" },
@@ -145,7 +146,7 @@ export default function BarChartSection({ data }: { data: RowData[] }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 10, fontFamily: "Prompt, monospace" }}
+                tick={<TruncatedTick angle={-45} textAnchor="end" maxChars={14} />}
                 angle={-45}
                 textAnchor="end"
                 height={80}

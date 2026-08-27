@@ -10,6 +10,7 @@ import {
   Cell,
 } from "recharts";
 import type { RowData } from "@/hooks/use-google-sheets-data";
+import TruncatedTick from "@/components/dashboard/TruncatedTick";
 
 const TOP10_DIMENSIONS = [
   { key: "กลุ่มภารกิจ", label: "กลุ่มภารกิจ" },
@@ -99,7 +100,7 @@ function Top10Chart({
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fontSize: 9, fontFamily: "Prompt, monospace" }}
+              tick={<TruncatedTick textAnchor="end" maxChars={12} />}
               width={90}
               tickLine={false}
               axisLine={false}
