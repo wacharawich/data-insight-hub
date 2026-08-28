@@ -22,6 +22,26 @@ export default function Dashboard() {
 
   const [syncing, setSyncing] = useState(false);
 
+  // Compute plan prices for header display
+  const planPrices = filteredData.reduce(
+    (acc, row) => {
+      const price = Number(row["ราคาเสนอ"]) || 0;
+      acc.total += price;
+      const plan = String(row["ประเภทแผน"] || "").trim();
+      if (plan === "ในแผน") acc.inPlan += price;
+      else if (plan === "นอกแผน") acc.outPlan += price;
+      else if (plan === "ทดแทน") acc.replace += price;
+      return acc;
+    },
+    { total: 0, inPlan: 0, outPlan: 0, replace: 0 },
+  );
+
+  const fmtShort = (n: number) => {
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + " M";
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + " K";
+    return n.toLocaleString("th-TH", { maximumFractionDigits: 0 });
+  };
+
   const handleSync = async () => {
     setSyncing(true);
     await refetch();
@@ -81,6 +101,25 @@ export default function Dashboard() {
               <p className="text-[10px] text-gray-400 font-mono">
                 CL69 · PROCUREMENT REGISTRY DASHBOARD
               </p>
+            </div>
+          </div>
+          <div className="hidden lg:flex items-center gap-4 mr-4">
+            <div className="text-center">
+              <p className="text-[9px] text-gray-400 uppercase tracking-wider">ราคารวม</p>
+              <p className="text-xs font-bold text-gray-800">฿{fmtShort(planPrices.total)}</p>
+            </div>
+            <div className="w-px h-6 bg-gray-200" />
+            <div className="text-center">
+              <p className="text-[9px] text-emerald-500 uppercase tracking-wider">ในแผน</p>
+              <p className="text-xs font-semibold text-emerald-700">฿{fmtShort(planPrices.inPlan)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] text-amber-500 uppercase tracking-wider">นอกแผน</p>
+              <p className="text-xs font-semibold text-amber-700">฿{fmtShort(planPrices.outPlan)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] text-blue-500 uppercase tracking-wider">ทดแทน</p>
+              <p className="text-xs font-semibold text-blue-700">฿{fmtShort(planPrices.replace)}</p>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-3">
