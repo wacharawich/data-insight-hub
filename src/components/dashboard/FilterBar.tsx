@@ -61,13 +61,13 @@ function MultiSelectFilter({
 
   return (
     <div className="space-y-1">
-      <label className="text-[10px] font-medium text-gray-500 uppercase font-mono">
+      <label className="text-[10px] font-medium text-gray-500 uppercase">
         {label}
       </label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
-            className="flex h-8 w-full items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-2.5 text-xs font-mono hover:bg-gray-100 transition-colors"
+            className="flex h-8 w-full items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-2.5 text-xs hover:bg-gray-100 transition-colors"
           >
             <span className="truncate text-gray-700">
               {selected.length === 0
@@ -159,7 +159,7 @@ export default function FilterBar({
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex items-center gap-2 mb-3">
         <Filter className="w-4 h-4 text-gray-500" />
-        <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider font-mono">
+        <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
           ตัวกรอง
         </h3>
         {activeCount > 0 && (
@@ -202,7 +202,7 @@ export default function FilterBar({
 
       {/* Date range filter */}
       <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-        <label className="text-[10px] font-medium text-gray-500 uppercase font-mono whitespace-nowrap">
+        <label className="text-[10px] font-medium text-gray-500 uppercase whitespace-nowrap">
           ช่วงเวลา
         </label>
         <Input
@@ -217,7 +217,7 @@ export default function FilterBar({
               updateFilter("dateRange", null);
             }
           }}
-          className="h-7 text-xs bg-gray-50 border-gray-200 font-mono w-36"
+          className="h-7 text-xs bg-gray-50 border-gray-200 w-36"
         />
         <span className="text-xs text-gray-400">ถึง</span>
         <Input
@@ -232,7 +232,7 @@ export default function FilterBar({
               updateFilter("dateRange", null);
             }
           }}
-          className="h-7 text-xs bg-gray-50 border-gray-200 font-mono w-36"
+          className="h-7 text-xs bg-gray-50 border-gray-200 w-36"
         />
         {filters.dateRange && (
           <Button
