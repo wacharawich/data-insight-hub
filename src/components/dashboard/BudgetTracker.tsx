@@ -87,7 +87,7 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
   return (
     <div className="space-y-4">
       {/* ===== Grand summary ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <SummaryCard
           label="งบในแผน (ทั้งหมด)"
           budget={totalBudgetInPlan}
@@ -99,12 +99,6 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
           budget={budgetOutOfPlan}
           actual={actualOutOfPlan}
           accent="amber"
-        />
-        <SummaryCard
-          label="ทด替代"
-          budget={budgetReplacement}
-          actual={actualReplacement}
-          accent="blue"
         />
       </div>
 
