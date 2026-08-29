@@ -180,7 +180,7 @@ export default function Dashboard() {
         </div>
 
         {/* Footer */}
-        <        footer className="text-center py-6 text-[10px] text-gray-400 font-mono border-t border-gray-200">
+        <footer className="text-center py-6 text-[10px] text-gray-400 font-mono border-t border-gray-200">
           CL69 · ทะเบียนคุมแผนจัดซื้อจัดจ้าง โรงพยาบาลนางรอง
         </footer>
       </main>
