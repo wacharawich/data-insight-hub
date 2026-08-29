@@ -5,7 +5,7 @@ export interface BudgetRow {
   ประเภท: string;
   ราคาในแผน: number;
   ราคานอกแผน: number;
-  ราคาทด替代: number;
+  ราคาทดแทน: number;
 }
 
 const SHEET_ID =
@@ -74,7 +74,7 @@ function parseBudgetCSV(text: string): BudgetRow[] {
       ประเภท: line[1]?.trim() || "",
       ราคาในแผน: parseNumber(line[2] || "0"),
       ราคานอกแผน: parseNumber(line[24] || "0"),
-      ราคาทด替代: parseNumber(line[25] || "0"),
+      ราคาทดแทน: parseNumber(line[25] || "0"),
     }))
     .filter((row) => row.หมวด || row.ประเภท);
 }
@@ -123,14 +123,14 @@ export function useBudgetData() {
     [data],
   );
 
-  // Sum ราคานอกPLAN and ราคาทด替代 from sheet, default to 20M if empty
+  // Sum ราคานอกPLAN and ราคาทดแทน from sheet, default to 20M if empty
   const budgetOutOfPlan = useMemo(() => {
     const sum = data.reduce((s, r) => s + r["ราคานอกแผน"], 0);
     return sum > 0 ? sum : DEFAULT_GLOBAL_BUDGET;
   }, [data]);
 
   const budgetReplacement = useMemo(() => {
-    const sum = data.reduce((s, r) => s + r["ราคาทด替代"], 0);
+    const sum = data.reduce((s, r) => s + r["ราคาทดแทน"], 0);
     return sum > 0 ? sum : DEFAULT_GLOBAL_BUDGET;
   }, [data]);
 
