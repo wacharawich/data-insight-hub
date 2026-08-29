@@ -4,6 +4,8 @@ export interface BudgetRow {
   หมวด: string;
   ประเภท: string;
   ราคาในแผน: number;
+  ราคานอกแผน: number;
+  ราคาทด替代: number;
 }
 
 const SHEET_ID =
@@ -11,13 +13,7 @@ const SHEET_ID =
 const PLAN_SHEET = "plan";
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(PLAN_SHEET)}`;
 
-// Global budget for นอกแผน and ทด替代
-type BudgetPlanType = "นอกแผน" | "ทด替代";
-const PLAN_TYPES: BudgetPlanType[] = ["นอกแผน", "ทด替代"];
-export const BUDGETS: Record<BudgetPlanType, number> = {
-  "นอกแผน": 20_000_000,
-  "ทด替代": 20_000_000,
-};
+const DEFAULT_GLOBAL_BUDGET = 20_000_000;
 
 function parseNumber(val: string): number {
   const cleaned = val.replace(/[, \s]/g, "").trim();
@@ -77,6 +73,8 @@ function parseBudgetCSV(text: string): BudgetRow[] {
       หมวด: line[0]?.trim() || "",
       ประเภท: line[1]?.trim() || "",
       ราคาในแผน: parseNumber(line[2] || "0"),
+      ราคานอกแผน: parseNumber(line[24] || "0"),
+      ราคาทด替代: parseNumber(line[25] || "0"),
     }))
     .filter((row) => row.หมวด || row.ประเภท);
 }
@@ -125,12 +123,25 @@ export function useBudgetData() {
     [data],
   );
 
+  // Sum ราคานอกPLAN and ราคาทด替代 from sheet, default to 20M if empty
+  const budgetOutOfPlan = useMemo(() => {
+    const sum = data.reduce((s, r) => s + r["ราคานอกแผน"], 0);
+    return sum > 0 ? sum : DEFAULT_GLOBAL_BUDGET;
+  }, [data]);
+
+  const budgetReplacement = useMemo(() => {
+    const sum = data.reduce((s, r) => s + r["ราคาทด替代"], 0);
+    return sum > 0 ? sum : DEFAULT_GLOBAL_BUDGET;
+  }, [data]);
+
   return {
     data,
     loading,
     error,
     budgetByCategory,
     totalBudget,
+    budgetOutOfPlan,
+    budgetReplacement,
     refetch: fetchData,
   };
 }

@@ -1,7 +1,4 @@
-import {
-  BUDGETS,
-  type BudgetRow,
-} from "@/hooks/use-budget-data";
+import type { BudgetRow } from "@/hooks/use-budget-data";
 import type { RowData } from "@/hooks/use-google-sheets-data";
 import { Target, TrendingUp, AlertTriangle } from "lucide-react";
 
@@ -21,9 +18,11 @@ function fmtFull(n: number): string {
 interface Props {
   budgetData: BudgetRow[];
   actualData: RowData[];
+  budgetOutOfPlan: number;
+  budgetReplacement: number;
 }
 
-export default function BudgetTracker({ budgetData, actualData }: Props) {
+export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan, budgetReplacement }: Props) {
   // --- ในแผน: aggregate actual spending by หมวด+ประเภท ---
   const actualInPlan = new Map<string, number>();
   for (const row of actualData) {
@@ -101,13 +100,13 @@ export default function BudgetTracker({ budgetData, actualData }: Props) {
         />
         <SummaryCard
           label="งบนอกแผน"
-          budget={BUDGETS["นอกแผน"]}
+          budget={budgetOutOfPlan}
           actual={actualOutOfPlan}
           accent="amber"
         />
         <SummaryCard
-          label="งบทด替代"
-          budget={BUDGETS["ทด替代"]}
+          label="ทด替代"
+          budget={budgetReplacement}
           actual={actualReplacement}
           accent="blue"
         />
