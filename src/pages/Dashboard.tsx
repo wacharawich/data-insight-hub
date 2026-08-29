@@ -5,6 +5,8 @@ import BarChartSection from "@/components/dashboard/BarChartSection";
 import Top10Charts from "@/components/dashboard/Top10Charts";
 import DataTable from "@/components/dashboard/DataTable";
 import { useState } from "react";
+import BudgetTracker from "@/components/dashboard/BudgetTracker";
+import { useBudgetData } from "@/hooks/use-budget-data";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +23,7 @@ export default function Dashboard() {
   } = useGoogleSheetsData();
 
   const [syncing, setSyncing] = useState(false);
+  const { data: budgetData } = useBudgetData();
 
   // Compute plan prices for header display
   const planPrices = filteredData.reduce(
@@ -153,6 +156,17 @@ export default function Dashboard() {
 
         {/* Summary */}
         <SummaryCards data={filteredData} />
+
+        {/* Budget Tracker */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1 h-4 bg-amber-500 rounded-full" />
+            <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wider font-mono">
+              ติดตามงบประมาณ
+            </h2>
+          </div>
+          <BudgetTracker budgetData={budgetData} actualData={filteredData} />
+        </div>
 
         {/* Main Bar Chart */}
         <BarChartSection data={filteredData} />
