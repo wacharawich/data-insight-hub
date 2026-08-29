@@ -19,10 +19,9 @@ interface Props {
   budgetData: BudgetRow[];
   actualData: RowData[];
   budgetOutOfPlan: number;
-  budgetReplacement: number;
 }
 
-export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan, budgetReplacement }: Props) {
+export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan }: Props) {
   // --- ในแผน: aggregate actual spending by หมวด+ประเภท ---
   const actualInPlan = new Map<string, number>();
   for (const row of actualData) {
@@ -34,11 +33,6 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
   // --- นอกแผน: total actual ---
   const actualOutOfPlan = actualData
     .filter((r) => r["ประเภทแผน"] === "นอกแผน")
-    .reduce((sum, r) => sum + r["ราคาเสนอ"], 0);
-
-  // --- ทด替代: total actual ---
-  const actualReplacement = actualData
-    .filter((r) => r["ประเภทแผน"] === "ทด替代")
     .reduce((sum, r) => sum + r["ราคาเสนอ"], 0);
 
   // --- Total budget & actual ---
@@ -91,7 +85,7 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
   return (
     <div className="space-y-4">
       {/* ===== Grand summary ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <SummaryCard
           label="งบในแผน (ทั้งหมด)"
           budget={totalBudgetInPlan}
@@ -103,12 +97,6 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
           budget={budgetOutOfPlan}
           actual={actualOutOfPlan}
           accent="amber"
-        />
-        <SummaryCard
-          label="ทด替代"
-          budget={budgetReplacement}
-          actual={actualReplacement}
-          accent="blue"
         />
       </div>
 
