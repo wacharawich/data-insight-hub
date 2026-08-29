@@ -23,7 +23,7 @@ export default function Dashboard() {
   } = useGoogleSheetsData();
 
   const [syncing, setSyncing] = useState(false);
-  const { data: budgetData, budgetOutOfPlan, budgetReplacement } = useBudgetData();
+  const { data: budgetData, budgetOutOfPlanAndReplacement } = useBudgetData();
 
   // Compute plan prices for header display
   const planPrices = filteredData.reduce(
@@ -165,7 +165,7 @@ export default function Dashboard() {
               ติดตามงบประมาณ
             </h2>
           </div>
-          <BudgetTracker budgetData={budgetData} actualData={filteredData} budgetOutOfPlan={budgetOutOfPlan} budgetReplacement={budgetReplacement} />
+          <BudgetTracker budgetData={budgetData} actualData={filteredData} budgetOutOfPlanAndReplacement={budgetOutOfPlanAndReplacement} />
         </div>
 
         {/* Main Bar Chart */}

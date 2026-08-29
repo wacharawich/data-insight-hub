@@ -18,11 +18,10 @@ function fmtFull(n: number): string {
 interface Props {
   budgetData: BudgetRow[];
   actualData: RowData[];
-  budgetOutOfPlan: number;
-  budgetReplacement: number;
+  budgetOutOfPlanAndReplacement: number;
 }
 
-export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan, budgetReplacement }: Props) {
+export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlanAndReplacement }: Props) {
   // --- ในแผน: aggregate actual spending by หมวด+ประเภท ---
   const actualInPlan = new Map<string, number>();
   for (const row of actualData) {
@@ -31,9 +30,9 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
     actualInPlan.set(key, (actualInPlan.get(key) || 0) + row["ราคาเสนอ"]);
   }
 
-  // --- นอกแผน: total actual ---
-  const actualOutOfPlan = actualData
-    .filter((r) => r["ประเภทแผน"] === "นอกแผน")
+  // --- นอกแผน + ทด替代: total actual (combined) ---
+  const actualOutOfPlanAndReplacement = actualData
+    .filter((r) => r["ประเภทแผน"] === "นอกแผน" || r["ประเภทแผน"] === "ทด替代")
     .reduce((sum, r) => sum + r["ราคาเสนอ"], 0);
 
 
@@ -95,9 +94,9 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
           accent="emerald"
         />
         <SummaryCard
-          label="งบนอกแผน"
-          budget={budgetOutOfPlan}
-          actual={actualOutOfPlan}
+          label="งบนอกแผนและทด替代"
+          budget={budgetOutOfPlanAndReplacement}
+          actual={actualOutOfPlanAndReplacement}
           accent="amber"
         />
       </div>
