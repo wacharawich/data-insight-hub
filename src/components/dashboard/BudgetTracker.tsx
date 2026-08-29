@@ -36,10 +36,6 @@ export default function BudgetTracker({ budgetData, actualData, budgetOutOfPlan,
     .filter((r) => r["ประเภทแผน"] === "นอกแผน")
     .reduce((sum, r) => sum + r["ราคาเสนอ"], 0);
 
-  // --- ทด替代: total actual ---
-  const actualReplacement = actualData
-    .filter((r) => r["ประเภทแผน"] === "ทด替代")
-    .reduce((sum, r) => sum + r["ราคาเสนอ"], 0);
 
   // --- Total budget & actual ---
   const totalBudgetInPlan = budgetData.reduce(
