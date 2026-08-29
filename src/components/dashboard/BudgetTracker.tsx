@@ -1,6 +1,5 @@
 import {
-  BUDGET_OUT_OF_PLAN,
-  BUDGET_REPLACEMENT,
+  BUDGETS,
   type BudgetRow,
 } from "@/hooks/use-budget-data";
 import type { RowData } from "@/hooks/use-google-sheets-data";
@@ -102,13 +101,13 @@ export default function BudgetTracker({ budgetData, actualData }: Props) {
         />
         <SummaryCard
           label="งบนอกแผน"
-          budget={BUDGET_OUT_OF_PLAN}
+          budget={BUDGETS["นอกแผน"]}
           actual={actualOutOfPlan}
           accent="amber"
         />
         <SummaryCard
           label="งบทด替代"
-          budget={BUDGET_REPLACEMENT}
+          budget={BUDGETS["ทด替代"]}
           actual={actualReplacement}
           accent="blue"
         />

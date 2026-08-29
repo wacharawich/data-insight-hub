@@ -12,8 +12,12 @@ const PLAN_SHEET = "plan";
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(PLAN_SHEET)}`;
 
 // Global budget for นอกแผน and ทด替代
-export const BUDGET_OUT_OF_PLAN = 20_000_000;
-export const BUDGET_REPLACEMENT = 20_000_000;
+type BudgetPlanType = "นอกแผน" | "ทด替代";
+const PLAN_TYPES: BudgetPlanType[] = ["นอกแผน", "ทด替代"];
+export const BUDGETS: Record<BudgetPlanType, number> = {
+  "นอกแผน": 20_000_000,
+  "ทด替代": 20_000_000,
+};
 
 function parseNumber(val: string): number {
   const cleaned = val.replace(/[, \s]/g, "").trim();
